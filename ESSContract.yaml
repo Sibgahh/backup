@@ -1,0 +1,2519 @@
+openapi: 3.0.3
+info:
+  title: ESS API Services
+  description: |
+    API contract for Employee Self Service (ESS) system
+
+    The Employee Self Service (ESS) API supports the management and updating of employee personal data in compliance with applicable data protection regulations (e.g., UU PDP). This API enables employees and authorized personnel to perform various operations related to identity verification, personal information updates, and data request approvals.
+
+    ## Functional Overview
+
+    - Employees can initiate and manage updates to personal data, such as full name, contact details, address, bank account information, education history, family members, and social security data (BPJS, Telkomedika).
+
+    - Document handling is supported for both uploads and downloads, including but not limited to KTP, NPWP, KK, BPJS cards, passports, and academic/professional certificates.
+
+    - The system includes a structured request flow:
+      - Requests can be saved as drafts or submitted for approval.
+      - Admin HC users are responsible for reviewing and updating the status of requests to approved or rejected.
+      - Rejected requests may include reviewer notes and can be revised and resubmitted by the employee.
+
+    - Each request includes metadata such as timestamps (date and time in WIB), unique request IDs, reviewer information, and status history.
+
+    - Users can track their request history, filtered by status (draft, submitted, approved, rejected), and export summaries as PDF when needed.
+
+    - Consent and acknowledgment features are implemented to support legal compliance, allowing users to view and provide consent as required.
+
+    - Session timeout is configured for 20 minutes of inactivity to maintain security and protect sensitive data access.
+
+    This documentation is intended to ensure consistent understanding and usage across development teams involved in implementing or consuming these services.
+
+  version: 1.1.0
+  contact:
+    name: Backend Intern
+    email: carolinesnt.2004@gmail.com
+
+servers:
+  - url: https://apigwsand.telkomsigma.co.id/mockapi/prism/essbe/
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: SSO login/logout, token management
+  - name: Dashboard
+    description: User dashboard data & summary
+  - name: Favorite Apps
+    description: Manage, sort, and list favorite apps
+  - name: Profile
+    description: View & update user profile
+  - name: Update Personal Data
+    description: Submit, draft, and track personal data changes
+  - name: Documents
+    description: Upload/download supporting documents
+  - name: Consent
+    description: Data protection agreement
+  - name: Export
+    description: Export personal data as PDF
+  - name: History & Revision
+    description: Change history, status, and revision tracking
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login via SSO (Single Sign-On) untuk mengakses ESS
+      description: |
+        Endpoint ini digunakan untuk melakukan proses login user ke aplikasi ESS menggunakan SSO (Single Sign-On). 
+        Jika login berhasil, akan mengembalikan access_token, refresh_token, dan data user (employee_name, email, avatar, role) yang digunakan untuk autentikasi dan otorisasi pada endpoint lain.
+        Jika gagal, akan mengembalikan pesan error yang sesuai, seperti kesalahan kredensial, akun terkunci, atau layanan eksternal tidak tersedia.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/LoginSuccess"
+        "400":
+          description: Permintaan tidak valid, misal format email salah atau field kosong.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                BadRequest:
+                  value:
+                    status: false
+                    messages:
+                      email:
+                        - "The email field must be a valid email address."
+                        - "The email field format is invalid."
+        "401":
+          description: Unauthorized - Kredensial salah, token tidak valid, atau password kadaluarsa.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ErrorResponse"
+                  - $ref: "#/components/schemas/MessageOnlyErrorResponse"
+              examples:
+                Unauthorized:
+                  value:
+                    status: false
+                    messages: "incorrect username or password"
+                Unauthenticated:
+                  value:
+                    message: "Unauthenticated."
+                PasswordExpired:
+                  value:
+                    status: false
+                    message: "Your password is expired."
+        "423":
+          description: Akun user terkunci sementara, misal karena terlalu banyak percobaan login gagal.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: "Your account is locked. Please try again later or please contact the support helpdesk."
+        "503":
+          description: Layanan eksternal (misal Mango/Active Directory) tidak tersedia.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                ServiceUnavailableMango:
+                  value:
+                    status: false
+                    messages: "your data is unavailable in mango"
+                ServiceUnavailableAD:
+                  value:
+                    status: false
+                    messages: "your data is unavailable in active directory"
+  /employees/profile:
+    get:
+      tags:
+        - Profile
+      summary: Mendapatkan profil karyawan yang sedang login (hanya baca)
+      description: |
+        Endpoint ini digunakan untuk mengambil data profil user yang sedang login. Data yang dikembalikan meliputi:
+        - Nama karyawan (employee_name)
+        - Email kantor (email)
+        - Nama perusahaan (company)
+        - Alamat kantor (company_address)
+        - Nomor telepon (phone_number)
+        - Foto profil ESS (photo_profile_ess)
+        Data ini digunakan untuk menampilkan informasi profil user pada aplikasi ESS.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profil user berhasil diambil beserta detail informasinya.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticatedResponse"
+              example:
+                data:
+                  employee_name: Sarah Wijaya
+                  email: example.employee@sigma.co.id
+                  company: PT SIGMA CIPTA CARAKA
+                  company_address: Jl. Telekomunikasi No.1, Bandung
+                  phone_number: 08123456789
+                  photo_profile_ess: https://.../profile.jpg
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid atau tidak ditemukan.
+    put:
+      tags:
+        - Profile
+      summary: Mengupdate foto profil ESS user yang sedang login
+      description: |
+        Endpoint ini digunakan untuk mengubah foto profil ESS milik user yang sedang login. Hanya field photo_profile_ess yang dapat diubah melalui endpoint ini. Cocok digunakan untuk fitur update foto profil pada aplikasi ESS.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfilePhoto"
+      responses:
+        "200":
+          description: Foto berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticatedResponse"
+              example:
+                status: true
+                message: Foto berhasil diperbarui.
+                data:
+                  photo_profile_ess: https://.../profile.jpg
+        "400":
+          description: Bad Request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Bad Request.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid.
+        "413":
+          description: File terlalu besar.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: File terlalu besar.
+        "415":
+          description: Format file tidak didukung.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Format file tidak didukung.
+
+  /employees/details/{section}:
+    get:
+      tags:
+        - Update Personal Data
+      summary: Mendapatkan detail profil karyawan berdasarkan section tertentu
+      description: |
+        Endpoint ini digunakan untuk mengambil data detail profil user yang sedang login berdasarkan section tertentu. 
+        Data yang dikembalikan dikelompokkan berdasarkan kategori sebagai berikut:
+
+        - **Basic Information**: Data utama karyawan seperti nama, NIK, tanggal lahir, dll.
+        - **Address**: Alamat tempat tinggal karyawan.
+        - **Emergency Contact**: Kontak darurat yang dapat dihubungi saat kondisi mendesak.
+        - **Payroll Account**: Informasi rekening untuk keperluan pembayaran gaji.
+        - **Family**: Data keluarga inti yang tercatat.
+        - **Education**: Riwayat pendidikan karyawan.
+        - **Social Security & Insurance**: Informasi terkait BPJS, asuransi, dan jaminan sosial lainnya.
+        - **Medical Record**: Rekam medis atau informasi kesehatan penting terkait karyawan.
+        - **Employment Information**: Riwayat dan informasi penugasan serta jabatan di perusahaan.
+
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: section
+          required: true
+          schema:
+            type: string
+          description: Section data yang ingin diambil (seperti Basic Information, Address, Emergency Contact, Payroll Account, Family, Education, Social Security & Insurance, Medical Record, Employement Information)
+      responses:
+        "200":
+          description: Data detail profil user berhasil diambil sesuai section yang diminta.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticatedResponse"
+              examples:
+                basic_information:
+                  $ref: "#/components/examples/BasicInformationExample"
+                address:
+                  $ref: "#/components/examples/AddressExample"
+                emergency_contact:
+                  $ref: "#/components/examples/EmergencyContactExample"
+                payroll_account:
+                  $ref: "#/components/examples/PayrollAccountExample"
+                family:
+                  $ref: "#/components/examples/FamilyExample"
+                education:
+                  $ref: "#/components/examples/EducationExample"
+                social_security:
+                  $ref: "#/components/examples/SocialSecurityExample"
+                medical_record:
+                  $ref: "#/components/examples/MedicalRecordExample"
+                employment_info:
+                  $ref: "#/components/examples/EmploymentInfoExample"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    patch:
+      tags:
+        - Profile
+      summary: Menyimpan perubahan pada section data karyawan sebagai draft
+      description: |
+        Endpoint ini digunakan untuk memperbarui salah satu bagian (section) data karyawan dan menyimpannya sebagai draft.
+        Gunakan query parameter `is_draft=true` untuk menandakan bahwa perubahan ini belum disubmit final (belum masuk approval).
+        Cocok untuk fitur simpan sementara sebelum submit final.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: section
+          in: path
+          required: true
+          description: |
+            Nama bagian data yang ingin diubah. Gunakan nilai berikut:
+            - basic_information
+            - address
+            - emergency_contact
+            - payroll_account
+            - family
+            - education
+            - social_security
+            - medical_record
+            - employment_information
+          schema:
+            type: string
+            enum:
+              [
+                basic_information,
+                address,
+                emergency_contact,
+                payroll_account,
+                family,
+                education,
+                social_security,
+                medical_record,
+                employment_information,
+              ]
+        - name: is_draft
+          in: query
+          required: false
+          description: Menyimpan perubahan sebagai draft (jika `true`, maka tidak dikirim ke approval)
+          schema:
+            type: boolean
+            default: false
+            description: Jika `true`, maka disimpan sebagai draft (belum masuk approval)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/BasicInformation"
+                - $ref: "#/components/schemas/Address"
+                - $ref: "#/components/schemas/EmergencyContact"
+                - $ref: "#/components/schemas/PayrollAccount"
+                - $ref: "#/components/schemas/Family"
+                - $ref: "#/components/schemas/Education"
+                - $ref: "#/components/schemas/SocialSecurity"
+                - $ref: "#/components/schemas/MedicalRecord"
+                - $ref: "#/components/schemas/EmploymentInfo"
+      responses:
+        "200":
+          description: Draft berhasil disimpan.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Draft berhasil disimpan.
+                  request_id:
+                    type: string
+                    example: "ESS-UP001"
+        "400":
+          description: Bad Request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Bad Request.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid.
+        "404":
+          description: Section tidak ditemukan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Section tidak ditemukan.
+        "500":
+          description: Terjadi kesalahan pada server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+
+  /employees/details/{section}/submit-request:
+    post:
+      tags:
+        - Update Personal Data
+      summary: Submit permintaan update data personal karyawan
+      description: |
+        Endpoint ini digunakan untuk mengirim permintaan update data personal user. Body request harus berisi alasan perubahan (change_reason), persetujuan pengelolaan data pribadi (consent), dan dokumen pendukung (documents).
+        Jika consent tidak dicentang, maka update tidak dapat dilakukan dan akan mengembalikan error. Jika berhasil, response akan berisi notifikasi sukses.
+
+        Catatan:
+        Jika request yang diedit berasal dari status 'rejected' atau 'draft', ketika disubmit ulang dan berhasil, response akan tetap:
+        {
+          "status": true,
+          "message": "The application has been successfully added."
+        }
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: section
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              [
+                Basic Information,
+                Address,
+                Emergency Contact,
+                Payroll Account,
+                Family,
+                Education,
+                Social Security & Insurance,
+                Medical Record,
+                Employement Information,
+              ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - change_reason
+                - consent
+              properties:
+                change_reason:
+                  type: string
+                  description: Alasan perubahan data
+                consent:
+                  type: boolean
+                  description: Persetujuan pengelolaan data pribadi
+                documents:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Dokumen pendukung (max 5 file)
+            example:
+              change_reason: "Perubahan alamat karena pindah rumah"
+              consent: true
+              documents: []
+      responses:
+        "200":
+          description: Permintaan update data berhasil dikirim dan menunggu approval.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "The data update request has been successfully submitted and is currently pending approval."
+                example:
+                  status: true
+                  message: "The data update request has been successfully submitted and is currently pending approval."
+        "400":
+          description: Consent wajib dicentang untuk submit update.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Consent must be checked to submit update."
+                example:
+                  status: false
+                  message: "Consent must be checked to submit update."
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid atau tidak ditemukan.
+
+  /documents/download/{type}:
+    get:
+      tags:
+        - Documents
+      summary: Mengunduh dokumen pendukung berdasarkan tipe dokumen
+      description: |
+        Endpoint ini digunakan untuk mengunduh dokumen pendukung (misal: KTP, NPWP, KK, BPJS, Passport, Ijazah, Foto) berdasarkan tipe dokumen yang diminta oleh user. Cocok untuk fitur download dokumen pada aplikasi ESS.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - KTP
+              - NPWP
+              - KK
+              - BPJS
+              - Passport
+              - Ijazah
+              - Foto
+      responses:
+        "200":
+          description: File dokumen berhasil diunduh sesuai tipe yang diminta.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Permintaan tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Permintaan tidak valid.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid atau tidak ditemukan.
+        "404":
+          description: Dokumen tidak ditemukan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Dokumen tidak ditemukan.
+        "500":
+          description: Terjadi kesalahan pada server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+  /consent:
+    post:
+      tags:
+        - Consent
+      summary: Submit persetujuan perlindungan data pribadi (consent)
+      description: |
+        Endpoint ini digunakan untuk mengirim persetujuan user terhadap pengelolaan dan perlindungan data pribadi sesuai regulasi yang berlaku. Consent ini wajib sebelum user dapat melakukan update data personal.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                agreed:
+                  type: boolean
+      responses:
+        "200":
+          description: Persetujuan data protection berhasil diterima dan dicatat.
+        "400":
+          description: Permintaan tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Permintaan tidak valid.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid atau tidak ditemukan.
+        "500":
+          description: Terjadi kesalahan pada server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+  /employees/update-history:
+    get:
+      tags:
+        - History & Revision
+      summary: Mendapatkan riwayat permintaan perubahan data personal user
+      description: |
+        Endpoint ini digunakan untuk mengambil daftar riwayat permintaan perubahan data pribadi user yang sedang login. Mendukung paginasi (8 data per halaman) dan filter berdasarkan status (draft, submitted, approved, rejected). Juga mengembalikan rekap jumlah status permintaan pada field status_summary.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Nomor halaman untuk paginasi (8 data per halaman)
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [draft, submitted, approved, rejected]
+          description: Filter riwayat permintaan berdasarkan status
+      responses:
+        "200":
+          description: Berhasil mengambil riwayat permintaan perubahan data beserta info user dan rekap status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status_summary:
+                    type: object
+                    properties:
+                      draft:
+                        type: integer
+                      approved:
+                        type: integer
+                      waiting_approval:
+                        type: integer
+                      rejected:
+                        type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HistoryRequestItem"
+                  page:
+                    type: integer
+                  total_pages:
+                    type: integer
+              example:
+                status_summary:
+                  approved: 5
+                  rejected: 1
+                  draft: 2
+                  waiting_approval: 1
+                data:
+                  - id: ESS-UP002
+                    update: address
+                    status: approved
+                    date_change: 2025-07-20T09:00:00Z
+                    approved_at: 2025-07-21T10:30:00Z
+                    reviewer: Dewi Putri
+                    reason_update: Pindah tempat tinggal
+
+                  - id: ESS-UP003
+                    update: family
+                    status: approved
+                    date_change: 2025-07-10T10:00:00Z
+                    approved_at: 2025-07-11T09:00:00Z
+                    reviewer: Linda Kusuma
+                    reason_update: Tambah data anak
+
+                  - id: ESS-UP004
+                    update: education
+                    status: approved
+                    date_change: 2025-07-05T15:20:00Z
+                    approved_at: 2025-07-06T10:45:00Z
+                    reviewer: Andi Pratama
+                    reason_update: Update ijazah terakhir
+
+                  - id: ESS-UP005
+                    update: emergency_contact
+                    status: approved
+                    date_change: 2025-06-28T12:00:00Z
+                    approved_at: 2025-06-29T13:30:00Z
+                    reviewer: Siti Nurhaliza
+                    reason_update: Ganti nomor kontak darurat
+
+                  - id: ESS-UP008
+                    update: payroll_account
+                    status: approved
+                    date_change: 2025-07-02T08:45:00Z
+                    approved_at: 2025-07-03T09:00:00Z
+                    reviewer: Bambang Widodo
+                    reason_update: Perubahan nomor rekening
+
+                  - id: ESS-UP007
+                    update: education
+                    status: rejected
+                    date_change: 2025-07-18T13:30:00Z
+                    approved_at: null
+                    reviewer: Joko Susilo
+                    reason_update: Update gelar pendidikan terakhir
+
+                  - id: ESS-DF001
+                    update: data_employee
+                    status: draft
+                    date_change: 2025-07-25T14:00:00Z
+                    approved_at: null
+                    reviewer: null
+                    reason_update: Perubahan data email pribadi
+                    changes:
+                      private_email: ivyovy01@gmail.com
+
+                  - id: ESS-DF002
+                    update: address
+                    status: draft
+                    date_change: 2025-07-19T09:30:00Z
+                    approved_at: null
+                    reviewer: null
+                    reason_update: Tambah alamat tinggal baru
+                    changes:
+                      domicile_address:
+                        street_name: "Jl. Cempaka Baru No.12"
+                        city: "Depok"
+                        postal_code: "16433"
+
+                  - id: ESS-UP006
+                    update: family
+                    status: waiting_approval
+                    date_change: 2025-07-22T16:00:00Z
+                    approved_at: null
+                    reviewer: null
+                    reason_update: Tambah data anak
+                    changes:
+                      name: "Zahra Safira"
+                      gender: "Perempuan"
+                      date_of_birth: "2020-05-12"
+                      relation: "Anak"
+                      marital_status: "Single"
+
+        "400":
+          description: Permintaan tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Permintaan tidak valid.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid atau tidak ditemukan.
+        "500":
+          description: Terjadi kesalahan pada server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+
+  /employees/update-history/{request_id}:
+    get:
+      tags:
+        - History & Revision
+      summary: Mendapatkan detail permintaan perubahan data berdasarkan ID
+      description: |
+        Endpoint ini digunakan untuk mengambil detail lengkap dari sebuah permintaan perubahan data berdasarkan ID unik. Detail yang dikembalikan meliputi status, reviewer, tanggal review, data yang diubah, dan catatan reviewer (jika ada).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Berhasil mengambil detail permintaan perubahan data.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/SubmittedRequestResponse"
+                  - $ref: "#/components/schemas/ApprovedRequestResponse"
+                  - $ref: "#/components/schemas/RejectedRequestResponse"
+              examples:
+                draft:
+                  $ref: "#/components/examples/DraftHistoryExample"
+                waitingapproval:
+                  $ref: "#/components/examples/WaitingApprovalHistoryExample"
+                approved:
+                  $ref: "#/components/examples/ApprovedRequestExample"
+                rejected:
+                  $ref: "#/components/examples/RejectedRequestExample"
+
+  /employees/update-history/{request_id}/download:
+    get:
+      tags:
+        - History & Revision
+      summary: Mendownload data permintaan perubahan sebagai PDF
+      description: |
+        Endpoint ini digunakan untuk mengunduh data permintaan perubahan yang telah disubmit sebagai file PDF. File PDF ini berisi semua detail permintaan, termasuk data yang diubah, status, dan catatan reviewer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Berhasil mengunduh data permintaan perubahan sebagai PDF.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Permintaan tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Permintaan tidak valid.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid atau tidak ditemukan.
+        "404":
+          description: Dokumen tidak ditemukan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Dokumen tidak ditemukan.
+        "500":
+          description: Terjadi kesalahan pada server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+
+  /employees/update-history/{request_id}/edit:
+    patch:
+      tags:
+        - History & Revision
+      summary: Mengedit permintaan perubahan data dengan status 'draft' atau 'rejected'
+      description: |
+        Endpoint ini digunakan untuk mengedit isi dari permintaan perubahan data berdasarkan ID unik. 
+        Hanya permintaan yang berstatus 'draft' atau 'rejected' yang dapat diedit (misalnya untuk diperbaiki dan disubmit ulang).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                change_reason:
+                  type: string
+                  description: Alasan perubahan data
+                  example: Ada kesalahan penulisan nama keluarga.
+                consent:
+                  type: boolean
+                  description: Persetujuan pengelolaan data pribadi
+                  example: true
+                updated_data:
+                  type: object
+                  description: Data baru yang ingin diubah (struktur tergantung jenis data)
+                  example:
+                    name: "Claire"
+                    address: "Jl. Mawar No. 7"
+                documents:
+                  example:
+                    documents: data:application/pdf;base64,JVBERi0xLjQKJ...etc
+              required:
+                - change_reason
+                - consent
+      responses:
+        "200":
+          description: Permintaan perubahan data berhasil diubah statusnya.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Request updated successfully
+                  request_id:
+                    type: string
+                    example: "ESS-UP001"
+        "400":
+          description: Permintaan tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Permintaan tidak valid.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid atau tidak ditemukan.
+        "404":
+          description: Request ID tidak ditemukan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Request ID tidak ditemukan.
+        "500":
+          description: Terjadi kesalahan pada server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+
+    delete:
+      tags:
+        - History & Revision
+      summary: Menghapus permintaan perubahan data draft
+      description: |
+        Endpoint ini digunakan untuk menghapus permintaan perubahan data draft berdasarkan ID unik. Hanya permintaan dengan status 'draft' yang dapat dihapus.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema:
+            type: string
+          description: ID permintaan perubahan data yang ingin dihapus
+      responses:
+        "200":
+          description: Draft request berhasil dihapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Draft request deleted successfully
+        "400":
+          description: Hanya draft request yang dapat dihapus.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Only draft requests can be deleted
+        "404":
+          description: Request ID tidak ditemukan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Request ID tidak ditemukan.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid atau tidak ditemukan.
+        "500":
+          description: Terjadi kesalahan pada server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+
+  /employees/favorites/:
+    get:
+      tags:
+        - Favorite Apps
+      summary: Mendapatkan semua aplikasi favorit milik user yang sedang login
+      description: |
+        Endpoint ini digunakan untuk mengambil daftar aplikasi favorit milik user yang sedang login. Mendukung fitur pencarian nama aplikasi (search) dan filter kategori aplikasi (category) melalui query string.
+        Data ini digunakan untuk menampilkan aplikasi favorit pada halaman utama ESS.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Mencari aplikasi favorit berdasarkan nama
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter aplikasi favorit berdasarkan kategori
+      responses:
+        "200":
+          description: Data favorit berhasil diambil.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  favorites:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FavoriteApp"
+              example:
+                status: true
+                message: Data favorit berhasil diambil.
+                favorites: []
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid.
+        "500":
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+    post:
+      tags:
+        - Favorite Apps
+      summary: Menambahkan aplikasi ke favorit
+      description: |
+        Endpoint ini digunakan untuk menambahkan aplikasi ke daftar favorit milik user yang sedang login. Data aplikasi dikirim melalui body request.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FavoriteAppRequest"
+      responses:
+        "201":
+          description: Aplikasi ditambahkan ke favorit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: true
+                message: Aplikasi ditambahkan ke favorit.
+        "400":
+          description: ID app tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: ID app tidak valid.
+        "409":
+          description: Sudah ditambahkan sebelumnya.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Sudah ditambahkan sebelumnya.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid.
+        "500":
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+
+  /employees/favorites/{app_id}/:
+    delete:
+      tags:
+        - Favorite Apps
+      summary: Menghapus aplikasi dari favorit
+      description: |
+        Endpoint ini digunakan untuk menghapus aplikasi dari daftar favorit milik user yang sedang login berdasarkan ID aplikasi.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Berhasil dihapus.
+        "404":
+          description: App favorit tidak ditemukan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: App favorit tidak ditemukan.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid.
+
+  /employees/favorites/{app_id}/order/:
+    patch:
+      tags:
+        - Favorite Apps
+      summary: Mengubah urutan aplikasi favorit (drag-and-drop)
+      description: |
+        Endpoint ini digunakan untuk mengubah urutan aplikasi favorit user (drag-and-drop) berdasarkan ID aplikasi dan urutan baru (new_order).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FavoriteOrder"
+      responses:
+        "200":
+          description: Urutan berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                status: true
+                message: Urutan berhasil diperbarui.
+        "400":
+          description: Bad Request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Bad Request.
+        "404":
+          description: Not Found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Not Found.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid.
+
+  /employees/favorites/categories/:
+    get:
+      tags:
+        - Favorite Apps
+      summary: Mendapatkan daftar kategori aplikasi favorit
+      description: |
+        Endpoint ini digunakan untuk mengambil daftar kategori aplikasi favorit yang tersedia untuk user. Data ini digunakan untuk filter aplikasi favorit pada halaman utama ESS.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FavoriteCategory"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid.
+        "500":
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+
+  /employee/export:
+    post:
+      tags:
+        - Export
+      summary: Mengexport data personal dalam format PDF
+      description: |
+        Endpoint ini digunakan untuk mengirim daftar jenis data personal yang ingin diekspor dalam bentuk PDF.
+        PDF akan berisi hanya bagian yang dicentang oleh user (misal: employee, address, family).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data_types
+              properties:
+                data_types:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - Basic Information
+                      - Address
+                      - Emergency Contact
+                      - Account
+                      - Family
+                      - Education
+                      - Social Security
+                      - Medical
+                      - Employment
+                  description: |
+                    Endpoint ini digunakan untuk mengekspor data personal user dalam format PDF.
+                    User dapat memilih bagian data yang ingin disertakan melalui daftar `data_types`.
+                    PDF akan berisi hanya bagian yang dicentang atau dipilih oleh user, seperti `basic`, `address`, `education`, dan lainnya.
+
+      responses:
+        "200":
+          description: Berhasil menghasilkan file PDF.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: Header disposisi untuk unduhan file
+              schema:
+                type: string
+                example: attachment; filename="employee_export.pdf"
+        "400":
+          description: Permintaan atau data tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Permintaan tidak valid.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid atau tidak ditemukan.
+        "500":
+          description: Terjadi kesalahan pada server.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Terjadi kesalahan pada server.
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user dan mengakhiri session
+      description: |
+        Endpoint ini digunakan untuk melakukan proses logout user yang sedang login dan mengakhiri seluruh session aktif. Setelah logout, access_token dan refresh_token tidak dapat digunakan lagi.
+        Endpoint ini digunakan untuk mengamankan aplikasi dengan memastikan user benar-benar keluar dari sistem.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Berhasil logout.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Successfully logged out."
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid atau tidak ditemukan.
+
+  /employees/dashboard:
+    get:
+      tags:
+        - Dashboard
+      summary: Mendapatkan data dashboard (info user, favorites, apps by platform, categories)
+      description: |
+        Endpoint ini digunakan untuk mengambil data utama dashboard setelah login, meliputi:
+        - Daftar aplikasi favorit user (favorites)
+        - Daftar aplikasi yang dikelompokkan berdasarkan platform dan kategori (apps)
+        - Daftar kategori aplikasi (categories)
+        Semua data ini digunakan untuk menampilkan tampilan utama dashboard ESS.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Data berhasil diambil.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticatedResponse"
+              example:
+                status: true
+                message: Data berhasil diambil.
+                data:
+                  smart_access:
+                    - name: "Slack"
+                      url: "https://..."
+                      icon: "https://..." # opsional
+                    - name: "Other App"
+                      url: "https://..."
+                      icon: "https://..."
+                  apps:
+                    HC Platform:
+                      Human Resources (HR):
+                        - id: 2
+                          name: Sigpass
+                          code: SG
+                          description: Lorem ipsum...
+                          url: https://...
+                          is_favorite: false
+                        - id: 3
+                          name: Mango
+                          code: SA
+                          description: Lorem ipsum...
+                          url: https://...
+                          is_favorite: true
+                    IT Platform:
+                      IT Services:
+                        - id: 10
+                          name: Slack
+                          code: SA
+                          description: Lorem ipsum...
+                          url: https://...
+                          is_favorite: false
+        "401":
+          description: Token tidak valid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Token tidak valid.
+        "500":
+          description: Gagal ambil data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: false
+                message: Gagal ambil data.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: example.employee@sigma.co.id
+        password:
+          type: string
+          format: password
+          description: User password
+          example: Secret
+          minLength: 1
+    LoginResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        messages:
+          type: string
+          example: your data is available
+        data:
+          type: object
+          required: [employee_id, employee_name, email, token]
+          properties:
+            employee_id:
+              type: string
+              example: S0242422
+            employee_name:
+              type: string
+              example: Sarah Wijaya
+            email:
+              type: string
+              format: email
+              example: example.employee@sigma.co.id
+            employee_level:
+              type: string
+              example: OFFICER
+            employee_position:
+              type: string
+              example: OFFICER IT DEVELOPMENT AND ACQUISITION
+            unit:
+              type: string
+              example: Corporate Information System and Security
+            organization:
+              type: string
+              example: IT Development and Acquisition
+            spv_id:
+              type: string
+              example: S20250236
+            spv_name:
+              type: string
+              example: EXAMPLE SUPERVISOR
+            company_code:
+              type: string
+              example: SCC
+            authenticator:
+              type: string
+              example: ACTIVE DIRECTORY
+            access_token:
+              type: string
+              description: Token autentikasi JWT atau sejenis
+              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+            refresh_token:
+              type: string
+              description: Token autentikasi JWT atau sejenis
+              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - messages
+      properties:
+        status:
+          type: boolean
+          example: false
+        messages:
+          oneOf:
+            - type: string
+              example: "incorrect username or password"
+            - type: object
+              properties:
+                email:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    [
+                      "The email field must be a valid email address.",
+                      "The email field format is invalid.",
+                    ]
+    MessageOnlyErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: "Unauthenticated."
+    UpdateProfilePhoto:
+      type: object
+      required:
+        - photo_profile_ess
+      properties:
+        photo_profile_ess:
+          type: string
+          format: uri
+          example: https://.../profile.jpg
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          example: Jl. Raya No. 123
+        rt_rw:
+          type: string
+          example: RT 01/02
+        subdistrict:
+          type: string
+          example: Kebon Jeruk
+        district:
+          type: string
+          example: Kebon Jeruk
+        city:
+          type: string
+          example: Jakarta Barat
+        province:
+          type: string
+          example: Jakarta
+        zip_code:
+          type: string
+          example: 12345
+        country:
+          type: string
+          example: Indonesia
+        residence_status:
+          type: string
+          example: Permanent
+    EmergencyContact:
+      type: object
+      properties:
+        contact_name:
+          type: string
+          example: "Andi"
+        relationship:
+          type: string
+          example: "Brother"
+        contact_number:
+          type: string
+          example: "+6281234567890"
+        contact_address:
+          type: string
+          example: "Jl. Melati No. 10, Jakarta"
+    Education:
+      type: object
+      properties:
+        education_level:
+          type: string
+          example: "Bachelor"
+        major:
+          type: string
+        institution:
+          type: string
+        start_year:
+          type: integer
+        end_year:
+          type: integer
+        ijazah_photo:
+          type: string
+          format: binary
+    FavoriteAppRequest:
+      type: object
+      required:
+        - app_id
+      properties:
+        app_id:
+          type: integer
+          example: 123
+    BasicInformation:
+      type: object
+      properties:
+        employee_name:
+          type: string
+          example: Sarah Wijaya
+        professional_photo:
+          type: string
+          format: uri
+          example: https://.../profile.jpg
+        place_of_birth:
+          type: string
+          example: Jakarta
+        birth_date:
+          type: string
+          format: date
+          example: 1990-01-01
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+          example: male
+        id_number_ktp:
+          type: string
+          example: 1234567890123456
+        passport_number:
+          type: string
+          example: A12345678
+        religion:
+          type: string
+          example: Islam
+        marital_status:
+          type: string
+          example: Single
+        nationality:
+          type: string
+          example: Indonesia
+        clothing_size:
+          type: string
+          example: M
+        main_phone_number:
+          type: string
+          example: 081234567890
+        secondary_phone_number:
+          type: string
+          example: 081298765432
+        private_email:
+          type: string
+          format: email
+          example: example.employee@gmail.com
+        photo_ktp:
+          type: string
+          format: uri
+          example: https://.../ktp.jpg
+    Family:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            description: Nama lengkap anggota keluarga
+            example: "Jane Doe"
+          gender:
+            type: string
+            enum: [Male, Female]
+            description: Jenis kelamin
+            example: "Female"
+          dateOfBirth:
+            type: string
+            format: date
+            description: Tanggal lahir (format YYYY-MM-DD)
+            example: "1995-06-10"
+          placeOfBirth:
+            type: string
+            description: Tempat lahir
+            example: "Surabaya"
+          address:
+            type: string
+            description: Alamat anggota keluarga
+            example: "Jl. Keluarga No. 5"
+          occupation:
+            type: string
+            description: Pekerjaan anggota keluarga
+            example: "Guru"
+          relation:
+            type: string
+            description: Hubungan dengan karyawan
+            example: "Istri"
+          maritalStatus:
+            type: string
+            enum: [Single, Married, Divorced, Widowed]
+            description: Status pernikahan
+            example: "Married"
+          memberSequence:
+            type: integer
+            description: Urutan anggota dalam keluarga
+            example: 2
+          telkomedikaCardNumber:
+            type: string
+            description: Nomor kartu Telkomedika
+            example: "TKM12345678"
+          telkomedikaMemberStatus:
+            type: string
+            enum: [Active, Inactive]
+            description: Status keanggotaan Telkomedika
+            example: "Active"
+          photoOfKK:
+            type: string
+            format: binary
+            description: Foto dari Kartu Keluarga
+    PayrollAccount:
+      type: object
+      properties:
+        bank_account_number:
+          type: string
+          example: "1234567890"
+        bank_name:
+          type: string
+          example: "Bank BCA"
+        account_holder_name:
+          type: string
+          example: "Budi Santoso"
+        tax_status:
+          type: string
+          example: "Single"
+        tax_number:
+          type: string
+          example: "09.123.456.7-890.000"
+        npwp_photo:
+          type: string
+          format: binary
+          description: Upload foto NPWP
+        saving_book_photo:
+          type: string
+          format: binary
+          description: Foto halaman depan buku tabungan
+    SocialSecurity:
+      type: object
+      properties:
+        telkomedika_card_number:
+          type: string
+        bpjs_tk_number:
+          type: string
+        bpjs_tk_effective_date:
+          type: string
+          format: date
+        bpjs_kesehatan_number:
+          type: string
+        telkomedika_card_photo:
+          type: string
+          format: binary
+        bpjs_card_photo:
+          type: string
+          format: binary
+    MedicalRecord:
+      type: object
+      properties:
+        health_status:
+          type: string
+        last_mcu_date:
+          type: string
+          format: date
+        blood_type:
+          type: string
+          enum: [A, B, AB, O]
+        height_cm:
+          type: number
+        weight_cm:
+          type: number
+        has_disability:
+          type: boolean
+        head_size:
+          type: string
+        health_concern:
+          type: string
+        medical_treatment_record:
+          type: string
+    EmploymentInfo:
+      type: object
+      properties:
+        nik:
+          type: string
+        nik_telkom:
+          type: string
+        business_email:
+          type: string
+        directorate:
+          type: string
+        business_unit:
+          type: string
+        divisi:
+          type: string
+        grade:
+          type: string
+        grade_date:
+          type: string
+          format: date
+        band_position:
+          type: string
+        band_position_date:
+          type: string
+          format: date
+        level:
+          type: string
+        level_date:
+          type: string
+          format: date
+        position:
+          type: string
+        supervisor:
+          type: string
+        join_date:
+          type: string
+          format: date
+        start_date:
+          type: string
+          format: date
+        terminate_date:
+          type: string
+          format: date
+        reason_employee_in:
+          type: string
+        reason_employee_out:
+          type: string
+        status:
+          type: string
+        retirement_date:
+          type: string
+          format: date
+    FavoriteApp:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Manage Data
+        code:
+          type: string
+          example: UP
+        description:
+          type: string
+          example: Lorem ipsum...
+        url:
+          type: string
+          format: uri
+          example: https://...
+        category:
+          type: string
+          example: HR
+        platform:
+          type: string
+          example: HC Platform
+    FavoriteCategory:
+      type: object
+      properties:
+        category_id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: HR
+    FavoriteOrder:
+      type: object
+      required:
+        - new_order
+      properties:
+        new_order:
+          type: integer
+    UserInfo:
+      type: object
+      properties:
+        employee_name:
+          type: string
+        email:
+          type: string
+        photo_profile_ess:
+          type: string
+        role:
+          type: string
+          example: EMPLOYEE
+    AuthenticatedResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token string
+        refresh_token:
+          type: string
+          description: JWT refresh token string
+        user:
+          $ref: "#/components/schemas/UserInfo"
+        data:
+          description: Response data for the endpoint
+          nullable: true
+      required:
+        - access_token
+        - refresh_token
+        - user
+      example:
+        access_token: "JWT_ACCESS_TOKEN_STRING"
+        refresh_token: "REFRESH_JWT_STRING"
+        user:
+          employee_name: "Sarah Wijaya"
+          email: "example.employee@sigma.co.id"
+          photo_profile_ess: null
+          role: EMPLOYEE
+        data:
+          favorites:
+            - id: 1
+              name: Manage Data
+              code: UP
+              description: Lorem ipsum...
+              url: https://...
+              category: HR
+              platform: HC Platform
+          apps:
+            HC Platform:
+              Human Resources (HR):
+                - id: 2
+                  name: Sigpass
+                  code: SG
+                  description: Lorem ipsum...
+                  url: https://...
+                  is_favorite: false
+                - id: 3
+                  name: Mango
+                  code: SA
+                  description: Lorem ipsum...
+                  url: https://...
+                  is_favorite: true
+            IT Platform:
+              IT Services:
+                - id: 10
+                  name: Slack
+                  code: SA
+                  description: Lorem ipsum...
+                  url: https://...
+                  is_favorite: false
+          categories:
+            - All
+            - HC Platform
+            - IT Platform
+
+    SubmittedRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [submitted]
+        reviewer:
+          type: string
+          description: Nama reviewer
+        reviewed_at:
+          type: string
+          format: date-time
+          description: Tanggal dan jam review (WIB)
+        data:
+          type: object
+          additionalProperties: true
+      required: [id, status, reviewer, reviewed_at, data]
+      example:
+        id: ESS-UP001
+        status: submitted
+        reviewer: Maria Garcia
+        reviewed_at: "2024-03-01T15:30:00+07:00"
+        data:
+          type: personal_data_update
+          employee_name: Ahmad Rahman
+          email: ahmad.rahman@gmail.com
+      x-error-example:
+        status: false
+        message: "Request not found or not in submitted status."
+    ApprovedRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [approved]
+        reviewer:
+          type: string
+        reviewed_at:
+          type: string
+          format: date-time
+        data:
+          type: object
+          additionalProperties: true
+      required: [id, status, reviewer, reviewed_at, data]
+      example:
+        id: ESS-UP001
+        status: approved
+        reviewer: Maria Garcia
+        reviewed_at: "2024-03-01T16:00:00+07:00"
+        data:
+          type: personal_data_update
+          employee_name: Ahmad Rahman
+          email: ahmad.rahman@gmail.com
+      x-error-example:
+        status: false
+        message: "Request not found or not in approved status."
+    RejectedRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [rejected]
+        reviewer:
+          type: string
+        reviewed_at:
+          type: string
+          format: date-time
+        hc_review_note:
+          type: string
+          description: Catatan/reason dari reviewer HC
+        data:
+          type: object
+          additionalProperties: true
+      required: [id, status, reviewer, reviewed_at, hc_review_note, data]
+      example:
+        id: ESS-UP001
+        status: rejected
+        reviewer: Maria Garcia
+        reviewed_at: "2024-03-01T16:10:00+07:00"
+        hc_review_note: "Dokumen pendukung tidak lengkap. Mohon lengkapi dan submit ulang."
+        data:
+          type: personal_data_update
+          employee_name: Ahmad Rahman
+          email: ahmad.rahman@gmail.com
+      x-error-example:
+        status: false
+        message: "Request not found or not in rejected status."
+    HistoryRequestItem:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Request ID (e.g. ESS-UP001)
+          example: ESS-UP001
+        update:
+          type: string
+          description: Kategori update (BasicInformation, Address, EmergencyContact, PayrollAccount, Family, Education, SocialSecurity, MedicalRecord, EmploymentInfo )
+          example: data_employee
+        status:
+          type: string
+          enum: [draft, approved, waiting_approval, rejected]
+          description: Status perubahan
+          example: approved
+        date_change:
+          type: string
+          format: date-time
+          description: Tanggal perubahan (M-D-Y, TIME)
+          example: 2025-07-26T10:00:00Z
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Tanggal disetujui (M-D-Y, TIME) jika ada
+          example: 2025-07-26T15:00:00Z
+        reviewer:
+          type: string
+          nullable: true
+          description: Nama reviewer jika ada
+          example: Rina Sari
+        reason_update:
+          type: string
+          description: Alasan perubahan dari user
+          example: Perubahan status pernikahan setelah update KTP terbaru
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operasi berhasil.
+        data:
+          type: object
+          nullable: true
+      required:
+        - status
+        - message
+  responses:
+    LoginSuccess:
+      description: Authenticated
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/LoginResponse"
+    BadRequest:
+      description: Bad Request - Invalid Input
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Unauthorized - Invalid Credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthenticated:
+      description: Unauthenticated - Token Missing or Invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MessageOnlyErrorResponse"
+    PasswordExpired:
+      description: Password Expired
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    AccountLocked:
+      description: Temporarily Blocked
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServiceUnavailable:
+      description: External Service Unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  examples:
+    BasicInformationExample:
+      summary: Basic Information
+      value:
+        employee_name: Sarah Wijaya
+        professional_photo: https://.../profile.jpg
+        place_of_birth: Jakarta
+        birth_date: 1990-01-01
+        gender: male
+        id_number_ktp: "1234567890123456"
+        passport_number: A12345678
+        religion: Islam
+        marital_status: Single
+        nationality: Indonesia
+        clothing_size: M
+        main_phone_number: "081234567890"
+        secondary_phone_number: "081298765432"
+        private_email: example.employee@gmail.com
+        photo_ktp: https://.../ktp.jpg
+    AddressExample:
+      summary: Address
+      value:
+        official_address:
+          detail: Jalan Telekomunikasi No.1
+          province: Jawa Barat
+          city: Bandung
+          postal_code: 40135
+          sub_district: Coblong
+          administrative_village: Dago
+          rt: "003"
+          rw: "006"
+          street_name: Jl. Telekomunikasi
+          house_number: 1
+        domicile_address:
+          detail: Jalan Merdeka No.5
+          province: DKI Jakarta
+          city: Jakarta Pusat
+          postal_code: 10210
+          sub_district: Gambir
+          administrative_village: Petojo
+          rt: "005"
+          rw: "002"
+          street_name: Jl. Merdeka
+          house_number: 5
+    EmergencyContactExample:
+      summary: Emergency Contact
+      value:
+        name: David Chen
+        relationship: Brother
+        phone_number: "08123456789"
+        address: Jl. Mawar No. 10, Jakarta
+    PayrollAccountExample:
+      summary: Payroll Account
+      value:
+        bank_account_number: "1234567890"
+        bank_name: BCA
+        account_holder_name: Ahmad Rahman
+        tax_status: TK/0
+        tax_number: "321654987123000"
+        npwp_doc: https://.../npwp.jpg
+        saving_book_doc: https://.../tabungan.jpg
+    FamilyExample:
+      summary: Family
+      value:
+        - name: Fatimah Azzahra
+          gender: female
+          birth_date: 1965-10-12
+          place_of_birth: Bandung
+          address: Jl. Bunga No. 8
+          occupation: Ibu Rumah Tangga
+          relation: Ibu
+          marital_status: Married
+          member_sequence: 1
+          telkomedika_card_number: "TKM123456"
+          telkomedika_member_status: Active
+          kk_doc: https://.../kk.jpg
+        - name: Muhammad Rizki
+          gender: male
+          birth_date: 1960-03-20
+          place_of_birth: Jakarta
+          address: Jl. Bunga No. 8
+          occupation: Wiraswasta
+          relation: Ayah
+          marital_status: Married
+          member_sequence: 2
+          telkomedika_card_number: "TKM654321"
+          telkomedika_member_status: Active
+          kk_doc: https://.../kk.jpg
+    EducationExample:
+      summary: Education
+      value:
+        - level: S1
+          major: Teknik Informatika
+          institution: Universitas Indonesia
+          start_year: 2008
+          end_year: 2012
+          ijazah_doc: https://.../ijazah_s1.jpg
+        - level: SMA
+          major: IPA
+          institution: SMAN 1 Jakarta
+          start_year: 2005
+          end_year: 2008
+          ijazah_doc: https://.../ijazah_sma.jpg
+    SocialSecurityExample:
+      summary: Social Security & Insurance
+      value:
+        telkomedika_card_number: "TKM202301"
+        bpjs_tk_number: "BPJSTK123456"
+        bpjs_tk_effective_date: 2015-01-01
+        bpjs_health_number: "BPJSKES654321"
+        telkomedika_doc: https://.../telkomedika.jpg
+        bpjs_doc: https://.../bpjs.jpg
+    MedicalRecordExample:
+      summary: Medical Record
+      value:
+        health_status: Fit
+        last_mcu_date: 2023-06-15
+        blood_type: O
+        height: 170.5
+        weight: 65.0
+        has_disability: No
+        head_size: 57 cm
+        health_concern: Tidak ada
+        medical_treatment_record: Tidak ada riwayat penyakit berat
+    EmploymentInfoExample:
+      summary: Employee Information
+      value:
+        nik: 3623243632523
+        nik_telkom: 21462176421
+        business_email: setiadyanwar@sigma.co.id
+        directorate: Corporate IT
+        business_unit: SCC
+        division: IT Development
+        grade: 7
+        grade_date: 2020-01-01
+        band_position: Officer
+        band_position_date: 2018-07-01
+        level: Officer
+        level_date: 2018-01-01
+        position: Backend Developer
+        supervisor: S20250236
+        join_date: 2015-01-01
+        start_date: 2015-02-01
+        terminate_date: null
+        reason_employee_in: Recruitment
+        reason_employee_out: null
+        status: Active
+        retirement_date: null
+    FamilyMember:
+      summary: Contoh data keluarga
+      value:
+        name: "Ayu Lestari"
+        gender: "female"
+        date_of_birth: "1990-05-14"
+        place_of_birth: "Bandung"
+        address: "Jl. Merpati No. 5, Bandung"
+        occupation: "Guru"
+        relation: "Istri"
+        marital_status: "Menikah"
+        member_sequence: 1
+        telkomedika_card_number: "TKM123456789"
+        telkomedika_member_status: "Aktif"
+        kartu_keluarga_photo: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg..."
+    ApprovedHistoryExample:
+      summary: Approved History Example
+      value:
+        status_summary:
+          approved: 5
+        data:
+          - id: ESS-UP002
+            update: address
+            status: approved
+            date_change: 2025-07-20T09:00:00Z
+            approved_at: 2025-07-21T10:30:00Z
+            reviewer: Dewi Putri
+            reason_update: Pindah tempat tinggal
+          - id: ESS-UP003
+            update: family
+            status: approved
+            date_change: 2025-07-10T10:00:00Z
+            approved_at: 2025-07-11T09:00:00Z
+            reviewer: Linda Kusuma
+            reason_update: Tambah data anak
+          - id: ESS-UP004
+            update: education
+            status: approved
+            date_change: 2025-07-05T15:20:00Z
+            approved_at: 2025-07-06T10:45:00Z
+            reviewer: Andi Pratama
+            reason_update: Update ijazah terakhir
+          - id: ESS-UP005
+            update: emergency_contact
+            status: approved
+            date_change: 2025-06-28T12:00:00Z
+            approved_at: 2025-06-29T13:30:00Z
+            reviewer: Siti Nurhaliza
+            reason_update: Ganti nomor kontak darurat
+          - id: ESS-UP008
+            update: payroll_account
+            status: approved
+            date_change: 2025-07-02T08:45:00Z
+            approved_at: 2025-07-03T09:00:00Z
+            reviewer: Bambang Widodo
+            reason_update: Perubahan nomor rekening
+
+    RejectedHistoryExample:
+      summary: Reject History Example
+      value:
+        status_summary:
+          rejected: 1
+        data:
+          - id: ESS-UP007
+            update: education
+            status: rejected
+            date_change: 2025-07-18T13:30:00Z
+            approved_at: null
+            reviewer: Joko Susilo
+            reason_update: Update gelar pendidikan terakhir
+
+    DraftHistoryExample:
+      summary: Draft History Example
+      value:
+        - id: ESS-DF001
+          update: data_employee
+          status: draft
+          date_change: 2025-07-25T14:00:00Z
+          approved_at: null
+          reviewer: null
+          reason_update: Perubahan data email pribadi
+          changes:
+            private_email: ivyovy01@gmail.com
+        - id: ESS-DF002
+          update: address
+          status: draft
+          date_change: 2025-07-19T09:30:00Z
+          approved_at: null
+          reviewer: null
+          reason_update: Tambah alamat tinggal baru
+          changes:
+            domicile_address:
+              street_name: "Jl. Cempaka Baru No.12"
+              city: "Depok"
+              postal_code: "16433"
+
+    WaitingApprovalHistoryExample:
+      summary: Waiting Approval History Example
+      value:
+        - id: ESS-UP006
+          update: family
+          status: waiting_approval
+          date_change: 2025-07-22T16:00:00Z
+          approved_at: null
+          reviewer: null
+          reason_update: Tambah data anak
+          changes:
+            name: "Zahra Safira"
+            gender: "Perempuan"
+            date_of_birth: "2020-05-12"
+            relation: "Anak"
+            marital_status: "Single"
+
+    # SubmittedRequestExample:
+    #   summary: Submitted
+    #   value:
+    #     submit_summary:
+    #       submitted: 1
+    #     id: ESS-UP010
+    #     update: data_employee
+    #     status: submitted
+    #     date_change: 2025-07-23T11:00:00Z
+    #     approved_at: null
+    #     reviewer: admin.hc@sigma.co.id
+    #     reason_update: Update email pribadi dan status karyawan
+    #     changes:
+    #       private_email: "ivyovy01@gmail.com"
+    #       status: "Active"
+
+    ApprovedRequestExample:
+      summary: Approved Request Example
+      value:
+        id: ESS-UP011
+        update: address
+        status: approved
+        date_change: 2025-07-21T10:00:00Z
+        approved_at: 2025-07-22T09:00:00Z
+        reviewer: Dewi Putri
+        reason_update: Perubahan alamat domisili terbaru
+        changes:
+          domicile_address:
+            province: "Jawa Barat"
+            city: "Bekasi"
+            postal_code: "17145"
+            street_name: "Jl. Melati No.5"
+
+    RejectedRequestExample:
+      summary: Reject Request Example
+      value:
+        id: ESS-UP012
+        update: education
+        status: rejected
+        date_change: 2025-07-19T13:30:00Z
+        approved_at: null
+        reviewer: Joko Susilo
+        reason_update: Update gelar pendidikan terakhir
+        hc_review_note: "Dokumen ijazah tidak sesuai format yang diminta"
+        changes:
+          education_level: "S2"
+          major: "Teknik Industri"
+          institution: "Universitas Indonesia"
+          end_year: 2024
