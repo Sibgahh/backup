@@ -1,9 +1,8 @@
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { API_ENDPOINTS } from "../api";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import {
   apiClient,
-  tokenManager,
   handleAuthenticationError,
+  tokenManager,
 } from "../actions/authESS";
 
 // ===== TYPES =====
@@ -233,159 +232,6 @@ const fetchEmployeeDetails = async (section: string, token: string) => {
   }
 };
 
-// Helper function to create mock data based on ESS Contract examples
-const createMockSectionData = (section: string): any => {
-  switch (section) {
-    case "basic_information":
-      return {
-        employee_name: "Sarah Wijaya",
-        professional_photo:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-        place_of_birth: "Jakarta",
-        birth_date: "1990-01-01",
-        gender: "female",
-        id_number_ktp: "1234567890123456",
-        passport_number: "A12345678",
-        religion: "Islam",
-        marital_status: "Single",
-        nationality: "Indonesia",
-        clothing_size: "M",
-        main_phone_number: "081234567890",
-        secondary_phone_number: "081298765432",
-        private_email: "sarah.wijaya@gmail.com",
-        photo_ktp: "https://example.com/ktp.jpg",
-      };
-
-    case "address":
-      return {
-        official_address: {
-          detail: "Jalan Telekomunikasi No.1",
-          province: "Jawa Barat",
-          city: "Bandung",
-          postal_code: "40135",
-          sub_district: "Coblong",
-          administrative_village: "Dago",
-          rt: "003",
-          rw: "006",
-          street_name: "Jl. Telekomunikasi",
-          house_number: "1",
-        },
-        domicile_address: {
-          detail: "Jalan Merdeka No.5",
-          province: "DKI Jakarta",
-          city: "Jakarta Pusat",
-          postal_code: "10210",
-          sub_district: "Gambir",
-          administrative_village: "Petojo",
-          rt: "005",
-          rw: "002",
-          street_name: "Jl. Merdeka",
-          house_number: "5",
-        },
-      };
-
-    case "emergency_contact":
-      return {
-        name: "David Chen",
-        relationship: "Brother",
-        phone_number: "08123456789",
-        address: "Jl. Mawar No. 10, Jakarta",
-      };
-
-    case "payroll_account":
-      return {
-        bank_account_number: "1234567890",
-        bank_name: "BCA",
-        account_holder_name: "Sarah Wijaya",
-        tax_status: "TK/0",
-        tax_number: "321654987123000",
-        npwp_doc: "https://example.com/npwp.jpg",
-        saving_book_doc: "https://example.com/tabungan.jpg",
-      };
-
-    case "family":
-      return [
-        {
-          name: "Fatimah Azzahra",
-          gender: "female",
-          birth_date: "1965-10-12",
-          place_of_birth: "Bandung",
-          address: "Jl. Bunga No. 8",
-          occupation: "Ibu Rumah Tangga",
-          relation: "Ibu",
-          marital_status: "Married",
-          member_sequence: 1,
-          telkomedika_card_number: "TKM123456",
-          telkomedika_member_status: "Active",
-          kk_doc: "https://example.com/kk.jpg",
-        },
-      ];
-
-    case "education":
-      return [
-        {
-          level: "S1",
-          major: "Teknik Informatika",
-          institution: "Universitas Indonesia",
-          start_year: 2008,
-          end_year: 2012,
-          ijazah_doc: "https://example.com/ijazah_s1.jpg",
-        },
-      ];
-
-    case "social_security":
-      return {
-        telkomedika_card_number: "TKM202301",
-        bpjs_tk_number: "BPJSTK123456",
-        bpjs_tk_effective_date: "2015-01-01",
-        bpjs_health_number: "BPJSKES654321",
-        telkomedika_doc: "https://example.com/telkomedika.jpg",
-        bpjs_doc: "https://example.com/bpjs.jpg",
-      };
-
-    case "medical_record":
-      return {
-        health_status: "Fit",
-        last_mcu_date: "2023-06-15",
-        blood_type: "O",
-        height: 170.5,
-        weight: 65.0,
-        has_disability: "No",
-        head_size: "57 cm",
-        health_concern: "Tidak ada",
-        medical_treatment_record: "Tidak ada riwayat penyakit berat",
-      };
-
-    case "employment_info":
-      return {
-        nik: "3623243632523",
-        nik_telkom: "21462176421",
-        business_email: "sarah.wijaya@sigma.co.id",
-        directorate: "Corporate IT",
-        business_unit: "SCC",
-        division: "IT Development",
-        grade: "7",
-        grade_date: "2020-01-01",
-        band_position: "Officer",
-        band_position_date: "2018-07-01",
-        level: "Officer",
-        level_date: "2018-01-01",
-        position: "Backend Developer",
-        supervisor: "S20250236",
-        join_date: "2015-01-01",
-        start_date: "2015-02-01",
-        terminate_date: null,
-        reason_employee_in: "Recruitment",
-        reason_employee_out: null,
-        status: "Active",
-        retirement_date: null,
-      };
-
-    default:
-      return null;
-  }
-};
-
 // ===== ASYNC THUNKS =====
 export const fetchEmployeeSection = createAsyncThunk(
   "employee/fetchSection",
@@ -398,14 +244,11 @@ export const fetchEmployeeSection = createAsyncThunk(
 
       if (!accessToken) {
         console.error("❌ No authentication token found");
-
-        // Trigger automatic logout
         dispatch(
           handleAuthenticationError(
             "No authentication token found. Please login again."
           )
         );
-
         return rejectWithValue(
           "No authentication token found. Please login again."
         );
@@ -419,105 +262,68 @@ export const fetchEmployeeSection = createAsyncThunk(
       // Store raw response for debugging
       console.log(`🔍 Raw API response for ${section}:`, response);
 
-      // Check if the response contains the expected employee data structure
-      let responseData;
-      let hasError = false;
-      let errorMessage = "";
-
-      // Handle different response structures
-      if (response.hasOwnProperty("status")) {
-        // Structure: {"status": true, "data": {...}, "messages": "..."}
-        if (!response.status) {
-          hasError = true;
-          errorMessage =
-            response.messages || response.message || "API returned error";
-        } else {
-          responseData = response.data;
-        }
-      } else if (response.hasOwnProperty("data")) {
-        // Structure: {"data": {...}, "access_token": "...", ...}
-
-        // Check if data contains employee-specific fields
-        const data = response.data;
-        const hasEmployeeData =
-          data &&
-          (data.employee_name ||
-            data.official_address ||
-            data.name ||
-            data.bank_account_number ||
-            Array.isArray(data) ||
-            data.telkomedika_card_number ||
-            data.health_status ||
-            data.nik);
-
-        if (hasEmployeeData) {
-          responseData = data;
-          console.log(`✅ Found real employee data for ${section}`);
-        } else {
-          // No employee data found - API might be returning generic data
-          console.warn(
-            `⚠️ API returned generic data instead of employee ${section} data.`
-          );
-
-          if (__DEV__) {
-            // In development, use mock data based on ESS Contract examples
-            responseData = createMockSectionData(section);
-            console.log(`🔧 Using mock data for ${section}:`, responseData);
-          } else {
-            // In production, return error
-            return rejectWithValue(
-              `API did not return ${section} data. Received: ${JSON.stringify(
-                data
-              )}`
-            );
-          }
-        }
-      } else if (response.hasOwnProperty("error")) {
-        // Error response structure
-        hasError = true;
-        errorMessage =
+      // Check for explicit error responses first
+      if (response && response.hasOwnProperty("error")) {
+        const errorMessage =
           response.error || response.message || "API returned error";
-      } else {
-        // Check if the response itself contains employee data
-        const hasEmployeeData =
-          response &&
-          (response.employee_name ||
-            response.official_address ||
-            response.name ||
-            response.bank_account_number ||
-            Array.isArray(response) ||
-            response.telkomedika_card_number ||
-            response.health_status ||
-            response.nik);
-
-        if (hasEmployeeData) {
-          responseData = response;
-          console.log(
-            `✅ Response itself contains employee data for ${section}`
-          );
-        } else {
-          console.warn(
-            `⚠️ Unknown response structure for ${section}:`,
-            response
-          );
-
-          if (__DEV__) {
-            // In development, use mock data
-            responseData = createMockSectionData(section);
-            console.log(`🔧 Using mock data for ${section}:`, responseData);
-          } else {
-            return rejectWithValue(`Unknown response structure for ${section}`);
-          }
-        }
-      }
-
-      if (hasError) {
         console.error("❌ API returned error:", errorMessage);
         return rejectWithValue(errorMessage);
       }
 
+      // Simplified response handling - remove complex logic that's causing issues
+      let responseData;
+
+      // Check if response has status/data structure
+      if (
+        response &&
+        response.hasOwnProperty("status") &&
+        response.hasOwnProperty("data")
+      ) {
+        // Structure: {"status": true, "data": {...}, "messages": "..."}
+        if (!response.status) {
+          const errorMessage =
+            response.messages || response.message || "API returned error";
+          console.error("❌ API status false:", errorMessage);
+          return rejectWithValue(errorMessage);
+        }
+        responseData = response.data;
+        console.log(`✅ Using data from status structure for ${section}`);
+      }
+      // Check if response has only data property (no status)
+      else if (
+        response &&
+        response.hasOwnProperty("data") &&
+        !response.hasOwnProperty("status")
+      ) {
+        // Structure: {"data": {...}, ...}
+        responseData = response.data;
+        console.log(`✅ Using data from data property for ${section}`);
+      }
+      // Direct response (like employment_info) - this should handle your case
+      else if (response && typeof response === "object") {
+        // The response itself is the data
+        responseData = response;
+        console.log(`✅ Using direct response as data for ${section}`);
+      } else {
+        console.error("❌ Invalid response format:", response);
+        return rejectWithValue(`Invalid response format for ${section}`);
+      }
+
+      // Simplified validation - just check if we have any data
       if (!responseData) {
-        console.error("❌ No data available for section:", section);
+        console.error(
+          "❌ responseData is null/undefined for section:",
+          section
+        );
+        return rejectWithValue(`No ${section} data available`);
+      }
+
+      if (
+        typeof responseData === "object" &&
+        responseData !== null &&
+        Object.keys(responseData).length === 0
+      ) {
+        console.error("❌ responseData is empty object for section:", section);
         return rejectWithValue(`No ${section} data available`);
       }
 
@@ -674,7 +480,16 @@ const employeeSlice = createSlice({
             state.medicalRecord = data;
             break;
           case "employment_info":
-            state.employmentInfo = data;
+            state.employmentInfo = {
+              ...data,
+              nik: String(data.nik),
+              nik_telkom: String(data.nik_telkom),
+              grade: String(data.grade),
+            };
+            console.log(
+              `✅ Stored employment_info in Redux:`,
+              state.employmentInfo
+            );
             break;
         }
 

@@ -21,6 +21,7 @@ const Colors = {
 
   error: "#dc3545",
   success: "#28a745",
+  success2: "#FFF5F3",
   warning: "#ffc107",
   info: "#17a2b8",
 
@@ -81,6 +82,111 @@ const Colors = {
   gradient: {
     primaryToSecondary: ["#004AAD", "#077ED2"],
     lightToDark: ["#3B6FCA", "#003580"],
+  },
+
+  // Design System Colors - New additions from the image
+  designSystem: {
+    // Text Colors
+    text: {
+      primary: "#313131",
+      secondary: "#7A7A7A",
+      tertiary: "#9C9C9C",
+      accent: "#DADADA",
+    },
+
+    // Grey Scale
+    grey: {
+      50: "#FFFFFF",
+      100: "#FAFAFA",
+      200: "#EAEAED",
+      300: "#DADAEA",
+      400: "#969363",
+      500: "#807865",
+      600: "#575407",
+      700: "#434854",
+      800: "#1D2939",
+      900: "#101828",
+    },
+
+    // Primary Blue Scale
+    primaryBlue: {
+      50: "#EAEFF7",
+      100: "#D0C776",
+      200: "#86A2DB",
+      300: "#4A68D5",
+      400: "#3358BD",
+      500: "#0044AD",
+      600: "#063580",
+      700: "#063878",
+      800: "#083349",
+      900: "#091649",
+    },
+
+    // Secondary Light Blue Scale
+    secondaryBlue: {
+      50: "#E8F7FC",
+      100: "#DEEF4",
+      200: "#BDC4EA",
+      300: "#59A8E1",
+      400: "#369BD8",
+      500: "#077ED2",
+      600: "#063BF",
+      700: "#055968",
+      800: "#043570",
+      900: "#03358",
+    },
+
+    // Error Red Scale
+    errorRed: {
+      100: "#FFEEE3",
+      200: "#FFEBE5",
+      300: "#FFD1CB",
+      400: "#FF5CA3",
+      500: "#EEA49F",
+      600: "#FF6B7C",
+      700: "#FF624F",
+      800: "#D03824",
+      900: "#BD210E",
+    },
+
+    // Warning Orange/Yellow Scale
+    warningOrange: {
+      100: "#FFFSE3",
+      200: "#FFEBE5",
+      300: "#FFD1CB",
+      400: "#FF5CA3",
+      500: "#EEA49F",
+      600: "#FF6B7C",
+      700: "#FF624F",
+      800: "#D03824",
+      900: "#BD210E",
+    },
+
+    // Success Green Scale
+    successGreen: {
+      100: "#FFF5F3",
+      200: "#FFE8E5",
+      300: "#FFD1CB",
+      400: "#F5ACA3",
+      500: "#EE9A8F",
+      600: "#F98B7C",
+      700: "#F9624F",
+      800: "#D63824",
+      900: "#B0210E",
+    },
+
+    // Info Blue Scale
+    infoBlue: {
+      100: "#FFFSF3",
+      200: "#FFEBE5",
+      300: "#FFD1CB",
+      400: "#FF5CA3",
+      500: "#EEA49F",
+      600: "#FF6B7C",
+      700: "#FF624F",
+      800: "#D03824",
+      900: "#BD210E",
+    },
   },
 };
 

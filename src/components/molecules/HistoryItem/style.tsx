@@ -22,11 +22,13 @@ export const styles = StyleSheet.create({
   historyDate: {
     ...Fonts.style.body2,
     color: Colors.text.secondary,
+    fontSize: 12,
   },
 
   historyTime: {
     ...Fonts.style.body2,
     color: Colors.text.secondary,
+    fontSize: 12,
   },
 
   historyItemContent: {
@@ -51,14 +53,17 @@ export const styles = StyleSheet.create({
   historyItemTitle: {
     fontFamily: Fonts.family.lato.bold,
     color: Colors.text.primary,
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 4,
+    overflow: "hidden",
   },
 
   historyItemDescription: {
     ...Fonts.style.body2,
+    fontSize: 12,
     color: Colors.text.secondary,
     lineHeight: 20,
+    overflow: "hidden",
   },
 
   statusBadge: {
@@ -70,7 +75,7 @@ export const styles = StyleSheet.create({
 
   statusBadgeText: {
     fontFamily: Fonts.family.lato.bold,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "500",
     color: Colors.text.primary,
   },

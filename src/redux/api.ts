@@ -14,25 +14,22 @@ export const API_ENDPOINTS = {
   HISTORY: {
     LIST: "/employees/update-history",
     DETAIL: (requestId: string) => `/employees/update-history/${requestId}`,
-    DOWNLOAD: (requestId: string) =>
-      `/employees/update-history/${requestId}/download`,
-    EDIT: (requestId: string) => `/employees/update-history/${requestId}/edit`,
   },
 
-  // Documents
-  DOCUMENTS: {
-    DOWNLOAD: (type: string) => `/documents/download/${type}`,
-  },
+  // // Documents
+  // DOCUMENTS: {
+  //   DOWNLOAD: (type: string) => `/documents/download/${type}`,
+  // },
 
-  // Export
-  EXPORT: {
-    PDF: "/employee/export",
-  },
+  // // Export
+  // EXPORT: {
+  //   PDF: "/employee/export",
+  // },
 
-  // Consent
-  CONSENT: {
-    SUBMIT: "/consent",
-  },
+  // // Consent
+  // CONSENT: {
+  //   SUBMIT: "/consent",
+  // },
 } as const;
 
 // Re-export the API client from authESS

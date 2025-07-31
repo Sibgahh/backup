@@ -6,13 +6,14 @@ import {
   useRoute,
 } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Card, Gap } from "../../components/atoms";
 import type { HistoryItemData } from "../../components/molecules";
 import { PageHeader } from "../../components/molecules";
 import { styles } from "./style";
+import { StepIndicator } from "@/components/molecules/StepIndicator/StepIndicator";
 
 // Enhanced data interfaces for detailed history
 interface ChangeItem {
@@ -44,6 +45,22 @@ interface EnhancedHistoryItemData extends HistoryItemData {
 export default function HistoryDetailsPage(): React.JSX.Element {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute();
+  const [currentStep, setCurrentStep] = useState(0); // 0-indexed steps
+  const [stepStatuses, setStepStatuses] = useState({
+    step1: "Draft",
+    step2: "In Review",
+    step3: "Status",
+  });
+
+  // Icons for each step (using Material Icons)
+  const getStepIcons = () => {
+    const icons = [
+      "edit-note", // Draft/Submitted
+      "visibility", // In review
+      stepStatuses.step3 === "Rejected" ? "close" : "check-circle", // Conditional icon for step 3
+    ];
+    return icons;
+  };
 
   // Get params with proper type checking
   const params = route.params as { historyItem?: HistoryItemData } | undefined;
@@ -129,45 +146,45 @@ export default function HistoryDetailsPage(): React.JSX.Element {
     hrReviewNotes: undefined,
   };
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case "draft":
-        return {
-          text: "Draft",
-          backgroundColor: "#E3F2FD",
-          textColor: "#004AAD",
-          icon: "document-text" as const,
-        };
-      case "waiting_approval":
-        return {
-          text: "Waiting Approval",
-          backgroundColor: "#FFF3E0",
-          textColor: "#FF9800",
-          icon: "time" as const,
-        };
-      case "rejected":
-        return {
-          text: "Rejected",
-          backgroundColor: "#FFEBEE",
-          textColor: "#F44336",
-          icon: "close-circle" as const,
-        };
-      case "success":
-        return {
-          text: "Success",
-          backgroundColor: "#E8F5E8",
-          textColor: "#4CAF50",
-          icon: "checkmark-circle" as const,
-        };
-      default:
-        return {
-          text: "Unknown",
-          backgroundColor: "#F5F5F5",
-          textColor: "#757575",
-          icon: "help-circle" as const,
-        };
-    }
-  };
+  // const getStatusConfig = (status: string) => {
+  //   switch (status) {
+  //     case "draft":
+  //       return {
+  //         text: "Draft",
+  //         backgroundColor: "#E3F2FD",
+  //         textColor: "#004AAD",
+  //         icon: "document-text" as const,
+  //       };
+  //     case "waiting_approval":
+  //       return {
+  //         text: "Waiting Approval",
+  //         backgroundColor: "#FFF3E0",
+  //         textColor: "#FF9800",
+  //         icon: "time" as const,
+  //       };
+  //     case "rejected":
+  //       return {
+  //         text: "Rejected",
+  //         backgroundColor: "#FFEBEE",
+  //         textColor: "#F44336",
+  //         icon: "close-circle" as const,
+  //       };
+  //     case "success":
+  //       return {
+  //         text: "Success",
+  //         backgroundColor: "#E8F5E8",
+  //         textColor: "#4CAF50",
+  //         icon: "checkmark-circle" as const,
+  //       };
+  //     default:
+  //       return {
+  //         text: "Unknown",
+  //         backgroundColor: "#F5F5F5",
+  //         textColor: "#757575",
+  //         icon: "help-circle" as const,
+  //       };
+  //   }
+  // };
 
   const getFileIcon = (fileType: string) => {
     if (fileType === "pdf") return "document-text";
@@ -181,8 +198,6 @@ export default function HistoryDetailsPage(): React.JSX.Element {
       : { backgroundColor: "#4CAF50", text: "Added" };
   };
 
-  const statusConfig = getStatusConfig(enhancedData.status);
-
   const handleBackPress = () => {
     navigation.goBack();
   };
@@ -190,66 +205,6 @@ export default function HistoryDetailsPage(): React.JSX.Element {
   const handleDownloadFile = (fileName: string) => {
     console.log("Download file:", fileName);
     // Implement download functionality
-  };
-
-  // Status Progress Component
-  const StatusProgress = () => {
-    const steps = [
-      { key: "submitted", label: "Submitted", icon: "checkmark-circle" },
-      { key: "review", label: "Review", icon: "refresh-circle" },
-      { key: "completed", label: "Status", icon: "checkmark-circle" },
-    ];
-
-    const currentStepIndex = steps.findIndex(
-      (step) => step.key === enhancedData.progressStep
-    );
-
-    return (
-      <View style={styles.progressContainer}>
-        {steps.map((step, index) => {
-          const isCompleted = index <= currentStepIndex;
-          const isCurrent = index === currentStepIndex;
-
-          return (
-            <View key={step.key} style={styles.stepContainer}>
-              <View style={styles.stepIndicator}>
-                <View
-                  style={[
-                    styles.stepCircle,
-                    isCompleted
-                      ? styles.stepCircleCompleted
-                      : styles.stepCirclePending,
-                    isCurrent && styles.stepCircleCurrent,
-                  ]}
-                >
-                  <Ionicons
-                    name={step.icon as any}
-                    size={36}
-                    color={isCompleted ? "#FFFFFF" : "#9E9E9E"}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.stepLabel,
-                    isCompleted && styles.stepLabelCompleted,
-                  ]}
-                >
-                  {step.label}
-                </Text>
-              </View>
-              {index < steps.length - 1 && (
-                <View
-                  style={[
-                    styles.stepConnector,
-                    isCompleted && styles.stepConnectorCompleted,
-                  ]}
-                />
-              )}
-            </View>
-          );
-        })}
-      </View>
-    );
   };
 
   return (
@@ -279,12 +234,77 @@ export default function HistoryDetailsPage(): React.JSX.Element {
               <Text style={styles.infoValue}>{enhancedData.reviewer}</Text>
             </View>
           </Card>
-          {/* Status Progress */}
-          <Card style={styles.progressCard}>
-            <Text style={styles.cardTitle}>Status Progress</Text>
-            <Gap size={20} />
-            <StatusProgress />
-          </Card>
+          <StepIndicator
+            currentStep={currentStep}
+            icons={getStepIcons()}
+            stepStatuses={stepStatuses}
+          />
+          {/* Add your history details content here */}
+          <View style={styles.contentContainer}>
+            {/* Step 1 Status Selection */}
+            {currentStep === 0 && (
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() =>
+                    setStepStatuses((prev) => ({ ...prev, step1: "Draft" }))
+                  }
+                >
+                  <Text style={styles.buttonText}>Set Draft</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() =>
+                    setStepStatuses((prev) => ({ ...prev, step1: "Submitted" }))
+                  }
+                >
+                  <Text style={styles.buttonText}>Set Submitted</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Step 3 Status Selection */}
+            {currentStep === 2 && (
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() =>
+                    setStepStatuses((prev) => ({ ...prev, step3: "Success" }))
+                  }
+                >
+                  <Text style={styles.buttonText}>Set Success</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() =>
+                    setStepStatuses((prev) => ({ ...prev, step3: "Rejected" }))
+                  }
+                >
+                  <Text style={styles.buttonText}>Set Rejected</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Step Navigation Buttons */}
+            <View style={styles.navigationContainer}>
+              {currentStep > 0 && (
+                <TouchableOpacity
+                  style={styles.navigationButton}
+                  onPress={() => setCurrentStep((prev) => prev - 1)}
+                >
+                  <Text style={styles.navigationButtonText}>Previous Step</Text>
+                </TouchableOpacity>
+              )}
+              {currentStep < 2 && (
+                <TouchableOpacity
+                  style={styles.navigationButton}
+                  onPress={() => setCurrentStep((prev) => prev + 1)}
+                >
+                  <Text style={styles.navigationButtonText}>Next Step</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
 
           <Gap size={16} />
 

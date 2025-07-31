@@ -1,94 +1,53 @@
+// ESSMobile/src/components/molecules/HistoryItem/HistoryItem.tsx
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import Colors from "../../../utils/Colors";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { HistoryItemData } from "../index";
 import { styles } from "./style";
-import Fonts from "@/utils/Fonts";
+import Colors from "../../../utils/Colors";
 
-export type HistoryStatus =
-  | "draft"
-  | "rejected"
-  | "success"
-  | "waiting_approval";
-export type DocumentType = "education" | "employee" | "medical" | "contact";
-
-export interface HistoryItemData {
-  id: string;
-  documentType: DocumentType;
-  title: string;
-  description: string;
-  status: HistoryStatus;
-  date: string;
-  time: string;
-}
-
-interface HistoryItemProps {
+export const HistoryItem: React.FC<{
   item: HistoryItemData;
   onPress?: (item: HistoryItemData) => void;
-}
-
-export const HistoryItem: React.FC<HistoryItemProps> = ({ item, onPress }) => {
-  const getStatusConfig = (status: HistoryStatus) => {
+}> = ({ item, onPress }) => {
+  // Get icon configuration based on status
+  const getStatusIconConfig = (status: string) => {
     switch (status) {
-      case "success":
-        return {
-          text: "Success",
-          backgroundColor: "#E8F5E8",
-          textColor: Colors.status.success,
-        };
       case "draft":
         return {
-          text: "Draft",
-          backgroundColor: "#E3F2FD",
-          textColor: Colors.primary.main,
+          name: "document-outline",
+          backgroundColor: Colors.designSystem.primaryBlue[500],
+          iconColor: "white",
         };
       case "waiting_approval":
         return {
-          text: "Waiting approval",
-          backgroundColor: "#E3F2FD",
-          textColor: Colors.primary.main,
-          fontFamily: Fonts.family.lato.bold,
+          name: "time-outline",
+          backgroundColor: Colors.designSystem.primaryBlue[500],
+          iconColor: "white",
+        };
+      case "success":
+      case "approved":
+        return {
+          name: "checkmark-circle-outline",
+          backgroundColor: Colors.success,
+          iconColor: "white",
         };
       case "rejected":
         return {
-          text: "Rejected",
-          backgroundColor: "#FFEBEE",
-          textColor: Colors.status.error,
-        };
-    }
-  };
-
-  const getDocumentIcon = (documentType: DocumentType) => {
-    switch (documentType) {
-      case "education":
-        return {
-          name: "refresh" as const,
-          backgroundColor: Colors.primary.main,
+          name: "close-circle-outline",
+          backgroundColor: Colors.error,
           iconColor: "white",
         };
-      case "employee":
+      default:
         return {
-          name: "close" as const,
-          backgroundColor: Colors.status.error,
-          iconColor: "white",
-        };
-      case "medical":
-        return {
-          name: "checkmark" as const,
-          backgroundColor: Colors.status.success,
-          iconColor: "white",
-        };
-      case "contact":
-        return {
-          name: "document-text" as const,
-          backgroundColor: Colors.primary.main,
+          name: "document-outline",
+          backgroundColor: Colors.primary.light,
           iconColor: "white",
         };
     }
   };
 
-  const statusConfig = getStatusConfig(item.status);
-  const iconConfig = getDocumentIcon(item.documentType);
+  const iconConfig = getStatusIconConfig(item.status);
 
   const handlePress = () => {
     onPress?.(item);
@@ -104,7 +63,35 @@ export const HistoryItem: React.FC<HistoryItemProps> = ({ item, onPress }) => {
     >
       <View style={styles.historyItemHeader}>
         <Text style={styles.historyDate}>{item.date}</Text>
-        <Text style={styles.historyTime}>{item.time}</Text>
+        <View
+          style={[
+            styles.statusBadge,
+            {
+              backgroundColor:
+                item.status === "success" || item.status === "approved"
+                  ? Colors.success2
+                  : item.status === "rejected"
+                  ? Colors.designSystem.errorRed[200]
+                  : Colors.designSystem.primaryBlue[50],
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusBadgeText,
+              {
+                color:
+                  item.status === "success" || item.status === "approved"
+                    ? Colors.success
+                    : item.status === "rejected"
+                    ? Colors.designSystem.errorRed[500]
+                    : Colors.designSystem.primaryBlue[500],
+              },
+            ]}
+          >
+            {item.status.replace("_", " ")}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.historyItemContent}>
@@ -115,7 +102,7 @@ export const HistoryItem: React.FC<HistoryItemProps> = ({ item, onPress }) => {
           ]}
         >
           <Ionicons
-            name={iconConfig.name}
+            name={iconConfig.name as any}
             size={24}
             color={iconConfig.iconColor}
           />
@@ -124,19 +111,6 @@ export const HistoryItem: React.FC<HistoryItemProps> = ({ item, onPress }) => {
         <View style={styles.historyItemInfo}>
           <Text style={styles.historyItemTitle}>{item.title}</Text>
           <Text style={styles.historyItemDescription}>{item.description}</Text>
-        </View>
-
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: statusConfig.backgroundColor },
-          ]}
-        >
-          <Text
-            style={[styles.statusBadgeText, { color: statusConfig.textColor }]}
-          >
-            {statusConfig.text}
-          </Text>
         </View>
       </View>
     </ContentComponent>

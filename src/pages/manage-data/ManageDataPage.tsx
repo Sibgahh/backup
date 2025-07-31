@@ -1,31 +1,29 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { RootStackParamList } from "@/router/AppNavigator";
+import { Ionicons } from "@expo/vector-icons";
+import { NavigationProp, useNavigation } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ScrollView,
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import { BottomSheet, Gap } from "../../components/atoms";
 import {
   PageHeader,
+  StatusType,
   TabContainer,
   TabItem,
-  UpdateStatus,
-  StatusType,
 } from "../../components/molecules";
-import { Gap } from "../../components/atoms";
-import { styles } from "./style";
-import { RootStackParamList } from "@/router/AppNavigator";
 import { useEmployeeData } from "../../hooks";
 import { useESSAuth } from "../../hooks/useESSAuth";
 import Colors from "../../utils/Colors";
-import { BottomSheet } from "../../components/atoms";
+import { styles } from "./style";
 
 // Types for tab states
 interface TabLoadState {
@@ -65,8 +63,17 @@ export default function ManageDataPage(): React.JSX.Element {
   // Track tab loading states to prevent spam
   const [tabStates, setTabStates] = useState<Record<string, TabLoadState>>({
     address: { hasTriedLoading: false, lastAttempt: 0, retryCount: 0 },
+    emergency_contact: {
+      hasTriedLoading: false,
+      lastAttempt: 0,
+      retryCount: 0,
+    },
+    payroll_account: { hasTriedLoading: false, lastAttempt: 0, retryCount: 0 },
+    family: { hasTriedLoading: false, lastAttempt: 0, retryCount: 0 },
     education: { hasTriedLoading: false, lastAttempt: 0, retryCount: 0 },
+    social_security: { hasTriedLoading: false, lastAttempt: 0, retryCount: 0 },
     medical_record: { hasTriedLoading: false, lastAttempt: 0, retryCount: 0 },
+    employment_info: { hasTriedLoading: false, lastAttempt: 0, retryCount: 0 },
   });
 
   // Refs for cleanup
@@ -159,7 +166,7 @@ export default function ManageDataPage(): React.JSX.Element {
         },
       }));
 
-      console.log(`�� Fetching ${section} data...`);
+      console.log(`📡 Fetching ${section} data...`);
       fetchSection(section);
     },
     [isAuthenticated, fetchSection, tabStates]
@@ -194,10 +201,14 @@ export default function ManageDataPage(): React.JSX.Element {
     } else {
       const allCategoryIds = [
         "basic_information",
-        "contact",
-        "education",
-        "medical_records",
+        "address",
+        "emergency_contact",
+        "payroll_account",
         "family",
+        "education",
+        "social_security",
+        "medical_record",
+        "employment_info",
       ];
       setSelectedCategories(allCategoryIds);
       setSelectAll(true);
@@ -211,7 +222,7 @@ export default function ManageDataPage(): React.JSX.Element {
         ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId];
 
-      setSelectAll(newSelection.length === 5); // 5 total categories
+      setSelectAll(newSelection.length === 9); // 9 total categories
       return newSelection;
     });
   };
@@ -271,6 +282,40 @@ export default function ManageDataPage(): React.JSX.Element {
     clearError();
     fetchSection("basic_information");
   };
+
+  // Create a reusable download container component
+  const renderDownloadContainer = (tabTitle: string) => (
+    <View style={styles.downloadContainer}>
+      <View style={styles.downloadContent}>
+        <View style={styles.downloadInfo}>
+          <View style={styles.pdfIconContainer}>
+            <Ionicons name="document-text" size={24} color="#004AAD" />
+          </View>
+          <View>
+            <Text style={styles.downloadTitle}>My {tabTitle} Data</Text>
+            <Text style={styles.downloadSubtitle}>Last update 13 Mar 2025</Text>
+          </View>
+        </View>
+      </View>
+      <TouchableOpacity
+        style={styles.downloadButton}
+        onPress={handleDownloadPress}
+      >
+        <Ionicons name="download-outline" size={24} color="#004AAD" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Create a reusable information header component
+  const renderInformationHeader = (title: string) => (
+    <View style={styles.informationHeader}>
+      <Text style={styles.informationTitle}>{title}</Text>
+      <TouchableOpacity style={styles.editButton} onPress={handleEditPress}>
+        <Ionicons name="pencil" size={16} color="#FFFFFF" />
+        <Text style={styles.editButtonText}>Edit</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   // Render retry button component
   const renderRetryButton = (section: string, text: string = "Load Data") => (
@@ -368,6 +413,32 @@ export default function ManageDataPage(): React.JSX.Element {
     </View>
   );
 
+  // Render list item for arrays (family, education)
+  const renderListItem = (
+    title: string,
+    items: any[],
+    renderItem: (item: any, index: number) => React.ReactNode
+  ) => (
+    <View style={styles.formWrapper}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Gap size={16} />
+      {items && items.length > 0 ? (
+        items.map((item, index) => (
+          <View key={index}>
+            {renderItem(item, index)}
+            {index < items.length - 1 && <Gap size={20} />}
+          </View>
+        ))
+      ) : (
+        <View style={styles.placeholderCard}>
+          <Text style={styles.placeholderText}>
+            No {title.toLowerCase()} data available
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
   // Inline tab components with status containers
   const BasicInformationTab = () => (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
@@ -381,7 +452,7 @@ export default function ManageDataPage(): React.JSX.Element {
                 <Ionicons name="document-text" size={24} color="#004AAD" />
               </View>
               <View>
-                <Text style={styles.downloadTitle}>My Contact Data</Text>
+                <Text style={styles.downloadTitle}>My Basic Info Data</Text>
                 <Text style={styles.downloadSubtitle}>
                   Last update 13 Mar 2025
                 </Text>
@@ -421,7 +492,7 @@ export default function ManageDataPage(): React.JSX.Element {
                   source={{
                     uri:
                       basicInformation?.professional_photo ||
-                      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
+                      "https://static.vecteezy.com/system/resources/previews/036/459/918/non_2x/ai-generated-young-caucasian-woman-corporate-portrait-png.png",
                   }}
                   style={styles.profilePhoto}
                 />
@@ -429,7 +500,7 @@ export default function ManageDataPage(): React.JSX.Element {
               <View style={styles.nameSection}>
                 <Text style={styles.nameLabel}>Name</Text>
                 <Text style={styles.nameValue}>
-                  {basicInformation?.employee_name || "Loading..."}
+                  {basicInformation?.employee_name || "Sarah Wijaya"}
                 </Text>
               </View>
             </View>
@@ -440,34 +511,44 @@ export default function ManageDataPage(): React.JSX.Element {
             <View style={styles.formWrapper}>
               {/* KTP Number Row */}
               {renderFieldRow(
-                { label: "KTP Number", value: basicInformation?.id_number_ktp },
+                {
+                  label: "KTP Number",
+                  value: basicInformation?.id_number_ktp || "1234567890123456",
+                },
                 {
                   label: "Passport Number",
-                  value: basicInformation?.passport_number,
+                  value: basicInformation?.passport_number || "A12345678",
                 }
               )}
 
               {/* Private Email - Full Width */}
               {renderFieldFull({
                 label: "Private Email",
-                value: basicInformation?.private_email,
+                value:
+                  basicInformation?.private_email ||
+                  "example.employee@gmail.com",
               })}
 
               {/* Birth Place and Date Row */}
               {renderFieldRow(
                 {
                   label: "Birth Place",
-                  value: basicInformation?.place_of_birth,
+                  value: basicInformation?.place_of_birth || "Jakarta",
                 },
                 {
                   label: "Birth Date",
-                  value: formatDate(basicInformation?.birth_date || ""),
+                  value: formatDate(
+                    basicInformation?.birth_date || "1990-01-01"
+                  ),
                 }
               )}
 
               {/* Religion and Gender Row */}
               {renderFieldRow(
-                { label: "Religion", value: basicInformation?.religion },
+                {
+                  label: "Religion",
+                  value: basicInformation?.religion || "Islam",
+                },
                 {
                   label: "Gender",
                   value:
@@ -475,7 +556,7 @@ export default function ManageDataPage(): React.JSX.Element {
                       ? "Male"
                       : basicInformation?.gender === "female"
                       ? "Female"
-                      : basicInformation?.gender,
+                      : "Male",
                 }
               )}
 
@@ -483,27 +564,31 @@ export default function ManageDataPage(): React.JSX.Element {
               {renderFieldRow(
                 {
                   label: "Marital Status",
-                  value: basicInformation?.marital_status,
+                  value: basicInformation?.marital_status || "Single",
                 },
-                { label: "Nationality", value: basicInformation?.nationality }
+                {
+                  label: "Nationality",
+                  value: basicInformation?.nationality || "Indonesia",
+                }
               )}
 
               {/* Phone Numbers Row */}
               {renderFieldRow(
                 {
                   label: "Main Phone",
-                  value: basicInformation?.main_phone_number,
+                  value: basicInformation?.main_phone_number || "081234567890",
                 },
                 {
                   label: "Secondary Phone",
-                  value: basicInformation?.secondary_phone_number,
+                  value:
+                    basicInformation?.secondary_phone_number || "081298765432",
                 }
               )}
 
               {/* Clothing Size */}
               {renderFieldRow({
                 label: "Clothing Size",
-                value: basicInformation?.clothing_size,
+                value: basicInformation?.clothing_size || "M",
               })}
             </View>
           </>
@@ -521,7 +606,7 @@ export default function ManageDataPage(): React.JSX.Element {
     </ScrollView>
   );
 
-  const ContactTab = () => {
+  const AddressTab = () => {
     // Load address data when this tab is accessed with delay
     useEffect(() => {
       if (isAuthenticated && !tabStates.address.hasTriedLoading) {
@@ -536,6 +621,14 @@ export default function ManageDataPage(): React.JSX.Element {
       >
         <Gap size={20} />
         <View style={styles.content}>
+          {/* Download Container */}
+          {renderDownloadContainer("Address")}
+
+          <Gap size={20} />
+          {/* Address Information Header with Edit Button */}
+          {renderInformationHeader("Address Information")}
+          <Gap size={16} />
+
           {loading.address ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.primary.main} />
@@ -546,58 +639,335 @@ export default function ManageDataPage(): React.JSX.Element {
           ) : address ? (
             <View style={styles.formWrapper}>
               <Text style={styles.sectionSubtitle}>Official Address</Text>
+              <Gap size={12} />
               {renderFieldFull({
                 label: "Address Detail",
-                value: address?.official_address?.detail,
+                value:
+                  address?.official_address?.detail ||
+                  "Jalan Telekomunikasi No.1",
               })}
               {renderFieldRow(
                 {
                   label: "Province",
-                  value: address?.official_address?.province,
+                  value: address?.official_address?.province || "Jawa Barat",
                 },
-                { label: "City", value: address?.official_address?.city }
+                {
+                  label: "City",
+                  value: address?.official_address?.city || "Bandung",
+                }
               )}
               {renderFieldRow(
                 {
                   label: "Sub District",
-                  value: address?.official_address?.sub_district,
+                  value: address?.official_address?.sub_district || "Coblong",
                 },
                 {
                   label: "Postal Code",
-                  value: address?.official_address?.postal_code,
+                  value: address?.official_address?.postal_code || "40135",
+                }
+              )}
+              {renderFieldRow(
+                {
+                  label: "RT",
+                  value: address?.official_address?.rt || "003",
+                },
+                {
+                  label: "RW",
+                  value: address?.official_address?.rw || "006",
                 }
               )}
 
               <Gap size={20} />
               <Text style={styles.sectionSubtitle}>Domicile Address</Text>
+              <Gap size={12} />
               {renderFieldFull({
                 label: "Address Detail",
-                value: address?.domicile_address?.detail,
+                value:
+                  address?.domicile_address?.detail || "Jalan Merdeka No.5",
               })}
               {renderFieldRow(
                 {
                   label: "Province",
-                  value: address?.domicile_address?.province,
+                  value: address?.domicile_address?.province || "DKI Jakarta",
                 },
-                { label: "City", value: address?.domicile_address?.city }
+                {
+                  label: "City",
+                  value: address?.domicile_address?.city || "Jakarta Pusat",
+                }
               )}
               {renderFieldRow(
                 {
                   label: "Sub District",
-                  value: address?.domicile_address?.sub_district,
+                  value: address?.domicile_address?.sub_district || "Gambir",
                 },
                 {
                   label: "Postal Code",
-                  value: address?.domicile_address?.postal_code,
+                  value: address?.domicile_address?.postal_code || "10210",
+                }
+              )}
+              {renderFieldRow(
+                {
+                  label: "RT",
+                  value: address?.domicile_address?.rt || "005",
+                },
+                {
+                  label: "RW",
+                  value: address?.domicile_address?.rw || "002",
                 }
               )}
             </View>
           ) : (
             renderErrorStateWithCountdown(
               "address",
-              "Contact information will be displayed here"
+              "Address information will be displayed here"
             )
           )}
+          <Gap size={64} />
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const EmergencyContactTab = () => {
+    // Load emergency contact data when this tab is accessed with delay
+    useEffect(() => {
+      if (isAuthenticated && !tabStates.emergency_contact.hasTriedLoading) {
+        fetchSectionWithDelay("emergency_contact");
+      }
+    }, [isAuthenticated]);
+
+    return (
+      <ScrollView
+        style={styles.tabContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Gap size={20} />
+        <View style={styles.content}>
+          {/* Download Container */}
+          {renderDownloadContainer("Emergency Contact")}
+
+          <Gap size={20} />
+          {/* Emergency Contact Header with Edit Button */}
+          {renderInformationHeader("Emergency Contact Information")}
+          <Gap size={16} />
+          {loading.emergencyContact ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary.main} />
+              <Text style={styles.loadingText}>
+                Loading emergency contact...
+              </Text>
+            </View>
+          ) : emergencyContact ? (
+            <View style={styles.formWrapper}>
+              <Text style={styles.sectionSubtitle}>Emergency Contact</Text>
+              <Gap size={12} />
+              {renderFieldRow(
+                {
+                  label: "Name",
+                  value: emergencyContact?.name || "David Chen",
+                },
+                {
+                  label: "Relationship",
+                  value: emergencyContact?.relationship || "Brother",
+                }
+              )}
+              {renderFieldFull({
+                label: "Phone Number",
+                value: emergencyContact?.phone_number || "08123456789",
+              })}
+              {renderFieldFull({
+                label: "Address",
+                value: emergencyContact?.address || "Jl. Mawar No. 10, Jakarta",
+              })}
+            </View>
+          ) : (
+            renderErrorStateWithCountdown(
+              "emergency_contact",
+              "Emergency contact will be displayed here"
+            )
+          )}
+          <Gap size={64} />
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const PayrollAccountTab = () => {
+    // Load payroll account data when this tab is accessed with delay
+    useEffect(() => {
+      if (isAuthenticated && !tabStates.payroll_account.hasTriedLoading) {
+        fetchSectionWithDelay("payroll_account");
+      }
+    }, [isAuthenticated]);
+
+    return (
+      <ScrollView
+        style={styles.tabContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Gap size={20} />
+        <View style={styles.content}>
+          {/* Download Container */}
+          {renderDownloadContainer("Payroll Account")}
+
+          <Gap size={20} />
+          {/* Payroll Account Header with Edit Button */}
+          {renderInformationHeader("Payroll Account Information")}
+          <Gap size={16} />
+          {loading.payrollAccount ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary.main} />
+              <Text style={styles.loadingText}>Loading payroll account...</Text>
+            </View>
+          ) : payrollAccount ? (
+            <View style={styles.formWrapper}>
+              <Text style={styles.sectionSubtitle}>Bank Account</Text>
+              <Gap size={12} />
+              {renderFieldRow(
+                {
+                  label: "Bank Name",
+                  value: payrollAccount?.bank_name || "BCA",
+                },
+                {
+                  label: "Account Number",
+                  value: payrollAccount?.bank_account_number || "1234567890",
+                }
+              )}
+              {renderFieldFull({
+                label: "Account Holder Name",
+                value: payrollAccount?.account_holder_name || "Ahmad Rahman",
+              })}
+
+              <Gap size={20} />
+              <Text style={styles.sectionSubtitle}>Tax Information</Text>
+              <Gap size={12} />
+              {renderFieldRow(
+                {
+                  label: "Tax Status",
+                  value: payrollAccount?.tax_status || "TK/0",
+                },
+                {
+                  label: "Tax Number (NPWP)",
+                  value: payrollAccount?.tax_number || "321654987123000",
+                }
+              )}
+            </View>
+          ) : (
+            renderErrorStateWithCountdown(
+              "payroll_account",
+              "Payroll account will be displayed here"
+            )
+          )}
+          <Gap size={64} />
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const FamilyTab = () => {
+    // Load family data when this tab is accessed with delay
+    useEffect(() => {
+      if (isAuthenticated && !tabStates.family.hasTriedLoading) {
+        fetchSectionWithDelay("family");
+      }
+    }, [isAuthenticated]);
+
+    // // Mock family data based on API contract
+    // const mockFamily = [
+    //   {
+    //     name: "Fatimah Azzahra",
+    //     gender: "female",
+    //     birth_date: "1965-10-12",
+    //     place_of_birth: "Bandung",
+    //     address: "Jl. Bunga No. 8",
+    //     occupation: "Ibu Rumah Tangga",
+    //     relation: "Ibu",
+    //     marital_status: "Married",
+    //     member_sequence: 1,
+    //     telkomedika_card_number: "TKM123456",
+    //     telkomedika_member_status: "Active",
+    //   },
+    //   {
+    //     name: "Muhammad Rizki",
+    //     gender: "male",
+    //     birth_date: "1960-03-20",
+    //     place_of_birth: "Jakarta",
+    //     address: "Jl. Bunga No. 8",
+    //     occupation: "Wiraswasta",
+    //     relation: "Ayah",
+    //     marital_status: "Married",
+    //     member_sequence: 2,
+    //     telkomedika_card_number: "TKM654321",
+    //     telkomedika_member_status: "Active",
+    //   },
+    // ];
+
+    return (
+      <ScrollView
+        style={styles.tabContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Gap size={20} />
+        <View style={styles.content}>
+          {/* Download Container */}
+          {renderDownloadContainer("Family")}
+
+          <Gap size={20} />
+          {/* Family Information Header with Edit Button */}
+          {renderInformationHeader("Family Information")}
+          <Gap size={16} />
+          {loading.family ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary.main} />
+              <Text style={styles.loadingText}>
+                Loading family information...
+              </Text>
+            </View>
+          ) : (
+            renderListItem(
+              "Family Members",
+              family || [], // Use family data or empty array
+              (member, index) => (
+                <View style={styles.formWrapper}>
+                  <Text style={styles.sectionSubtitle}>
+                    {member.relation} {index + 1}
+                  </Text>
+                  <Gap size={12} />
+                  {renderFieldRow(
+                    { label: "Name", value: member.name },
+                    {
+                      label: "Gender",
+                      value: member.gender === "female" ? "Female" : "Male",
+                    }
+                  )}
+                  {renderFieldRow(
+                    {
+                      label: "Birth Date",
+                      value: formatDate(member.birth_date),
+                    },
+                    { label: "Birth Place", value: member.place_of_birth }
+                  )}
+                  {renderFieldRow(
+                    { label: "Relation", value: member.relation },
+                    { label: "Marital Status", value: member.marital_status }
+                  )}
+                  {renderFieldFull({
+                    label: "Occupation",
+                    value: member.occupation,
+                  })}
+                  {renderFieldFull({ label: "Address", value: member.address })}
+                  {renderFieldRow(
+                    {
+                      label: "Telkomedika Card",
+                      value: member.telkomedika_card_number,
+                    },
+                    { label: "Status", value: member.telkomedika_member_status }
+                  )}
+                </View>
+              )
+            )
+          )}
+          <Gap size={64} />
         </View>
       </ScrollView>
     );
@@ -611,6 +981,24 @@ export default function ManageDataPage(): React.JSX.Element {
       }
     }, [isAuthenticated]);
 
+    // Mock education data based on API contract
+    // const mockEducation = [
+    //   {
+    //     level: "S1",
+    //     major: "Teknik Informatika",
+    //     institution: "Universitas Indonesia",
+    //     start_year: 2008,
+    //     end_year: 2012,
+    //   },
+    //   {
+    //     level: "SMA",
+    //     major: "IPA",
+    //     institution: "SMAN 1 Jakarta",
+    //     start_year: 2005,
+    //     end_year: 2008,
+    //   },
+    // ];
+
     return (
       <ScrollView
         style={styles.tabContent}
@@ -618,6 +1006,13 @@ export default function ManageDataPage(): React.JSX.Element {
       >
         <Gap size={20} />
         <View style={styles.content}>
+          {/* Download Container */}
+          {renderDownloadContainer("Education")}
+
+          <Gap size={20} />
+          {/* Education Information Header with Edit Button */}
+          {renderInformationHeader("Education Information")}
+          <Gap size={16} />
           {loading.education ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.primary.main} />
@@ -625,40 +1020,98 @@ export default function ManageDataPage(): React.JSX.Element {
                 Loading education information...
               </Text>
             </View>
-          ) : education && education.length > 0 ? (
-            <View style={styles.formWrapper}>
-              {education.map((edu: any, index: number) => (
-                <View key={index} style={{ marginBottom: 20 }}>
+          ) : (
+            renderListItem(
+              "Education History",
+              education || [],
+              (edu, index) => (
+                <View style={styles.formWrapper}>
                   <Text style={styles.sectionSubtitle}>
-                    Education {index + 1}
+                    {edu.level} - {edu.institution}
                   </Text>
+                  <Gap size={12} />
                   {renderFieldRow(
-                    { label: "Institution", value: edu?.institution_name },
-                    { label: "Degree", value: edu?.degree }
+                    { label: "Level", value: edu.level },
+                    { label: "Major", value: edu.major }
                   )}
+                  {renderFieldFull({
+                    label: "Institution",
+                    value: edu.institution,
+                  })}
                   {renderFieldRow(
-                    { label: "Field of Study", value: edu?.field_of_study },
-                    { label: "GPA", value: edu?.gpa }
-                  )}
-                  {renderFieldRow(
-                    { label: "Start Year", value: edu?.start_year },
-                    { label: "End Year", value: edu?.end_year }
+                    { label: "Start Year", value: edu.start_year?.toString() },
+                    { label: "End Year", value: edu.end_year?.toString() }
                   )}
                 </View>
-              ))}
-            </View>
-          ) : (
-            renderErrorStateWithCountdown(
-              "education",
-              "Education details will be displayed here"
+              )
             )
           )}
+          <Gap size={64} />
         </View>
       </ScrollView>
     );
   };
 
-  const MedicalTab = () => {
+  const SocialSecurityTab = () => {
+    // Load social security data when this tab is accessed with delay
+    useEffect(() => {
+      if (isAuthenticated && !tabStates.social_security.hasTriedLoading) {
+        fetchSectionWithDelay("social_security");
+      }
+    }, [isAuthenticated]);
+
+    return (
+      <ScrollView
+        style={styles.tabContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Gap size={20} />
+        <View style={styles.content}>
+          {/* Download Container */}
+          {renderDownloadContainer("Social Security")}
+
+          <Gap size={20} />
+          {/* Social Security Information Header with Edit Button */}
+          {renderInformationHeader("Social Security Information")}
+          <Gap size={16} />
+          {loading.socialSecurity ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary.main} />
+              <Text style={styles.loadingText}>Loading social security...</Text>
+            </View>
+          ) : (
+            <View style={styles.formWrapper}>
+              <Text style={styles.sectionSubtitle}>Telkomedika</Text>
+              <Gap size={12} />
+              {renderFieldFull({
+                label: "Telkomedika Card Number",
+                value: socialSecurity?.telkomedika_card_number,
+              })}
+
+              <Gap size={20} />
+              <Text style={styles.sectionSubtitle}>BPJS Ketenagakerjaan</Text>
+              <Gap size={12} />
+              {renderFieldRow({
+                label: "BPJS TK Number",
+                value: socialSecurity?.bpjs_tk_number,
+              })}
+
+              <Gap size={20} />
+              <Text style={styles.sectionSubtitle}>BPJS Kesehatan</Text>
+              <Gap size={12} />
+              {renderFieldFull({
+                label: "BPJS Health Number",
+                value: socialSecurity?.bpjs_health_number,
+              })}
+            </View>
+          )}
+          <Gap size={64} />
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const MedicalRecordTab = () => {
     // Load medical data when this tab is accessed with delay
     useEffect(() => {
       if (isAuthenticated && !tabStates.medical_record.hasTriedLoading) {
@@ -673,39 +1126,230 @@ export default function ManageDataPage(): React.JSX.Element {
       >
         <Gap size={20} />
         <View style={styles.content}>
+          {/* Download Container */}
+          {renderDownloadContainer("Medical Record")}
+
+          <Gap size={20} />
+          {/* Medical Record Information Header with Edit Button */}
+          {renderInformationHeader("Medical Record Information")}
+          <Gap size={16} />
           {loading.medicalRecord ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.primary.main} />
               <Text style={styles.loadingText}>Loading medical records...</Text>
             </View>
-          ) : medicalRecord ? (
+          ) : (
             <View style={styles.formWrapper}>
+              <Text style={styles.sectionSubtitle}>
+                Basic Health Information
+              </Text>
+              <Gap size={12} />
               {renderFieldRow(
-                { label: "Blood Type", value: medicalRecord?.blood_type },
-                { label: "Height (cm)", value: medicalRecord?.height }
-              )}
-              {renderFieldRow(
-                { label: "Weight (kg)", value: medicalRecord?.weight },
+                {
+                  label: "Blood Type",
+                  value: medicalRecord?.blood_type,
+                },
                 {
                   label: "Health Status",
                   value: medicalRecord?.health_status,
                 }
               )}
+              {renderFieldRow(
+                {
+                  label: "Height (cm)",
+                  value: medicalRecord?.height?.toString(),
+                },
+                {
+                  label: "Weight (kg)",
+                  value: medicalRecord?.weight?.toString(),
+                }
+              )}
+              {renderFieldRow(
+                {
+                  label: "Head Size",
+                  value: medicalRecord?.head_size,
+                },
+                {
+                  label: "Has Disability",
+                  value: medicalRecord?.has_disability,
+                }
+              )}
+              {renderFieldFull({
+                label: "Last MCU Date",
+                // value: formatDate(
+                //   medicalRecord?.last_mcu_date
+                // ),
+              })}
+
+              <Gap size={20} />
+              <Text style={styles.sectionSubtitle}>
+                Health Concerns & Treatment
+              </Text>
+              <Gap size={12} />
               {renderFieldFull({
                 label: "Health Concern",
-                value: medicalRecord?.health_concern || "None",
+                value: medicalRecord?.health_concern,
               })}
               {renderFieldFull({
                 label: "Medical Treatment Record",
-                value: medicalRecord?.medical_treatment_record || "None",
+                value: medicalRecord?.medical_treatment_record,
               })}
             </View>
+          )}
+          <Gap size={64} />
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const EmploymentInfoTab = () => {
+    // Load employment info data when this tab is accessed with delay
+    useEffect(() => {
+      if (isAuthenticated && !tabStates.employment_info.hasTriedLoading) {
+        fetchSectionWithDelay("employment_info");
+      }
+    }, [isAuthenticated]);
+
+    // Add debugging
+    useEffect(() => {
+      console.log("🔍 EmploymentInfoTab - employmentInfo:", employmentInfo);
+      console.log(
+        "🔍 EmploymentInfoTab - loading.employmentInfo:",
+        loading.employmentInfo
+      );
+      console.log("🔍 EmploymentInfoTab - error:", error);
+    }, [employmentInfo, loading.employmentInfo, error]);
+
+    return (
+      <ScrollView
+        style={styles.tabContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Gap size={20} />
+        <View style={styles.content}>
+          {/* Download Container */}
+          {renderDownloadContainer("Employment Info")}
+
+          <Gap size={20} />
+          {/* Employment Information Header with Edit Button */}
+          {renderInformationHeader("Employment Information")}
+          <Gap size={16} />
+
+          {loading.employmentInfo ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary.main} />
+              <Text style={styles.loadingText}>
+                Loading employment information...
+              </Text>
+            </View>
+          ) : employmentInfo ? (
+            // Show real data
+            <View style={styles.formWrapper}>
+              <Text style={styles.sectionSubtitle}>Employee Identity</Text>
+              <Gap size={12} />
+              {renderFieldRow(
+                {
+                  label: "NIK",
+                  value: String(employmentInfo.nik), // Convert to string
+                },
+                {
+                  label: "NIK Telkom",
+                  value: String(employmentInfo.nik_telkom), // Convert to string
+                }
+              )}
+              {renderFieldFull({
+                label: "Business Email",
+                value: employmentInfo.business_email,
+              })}
+
+              <Gap size={20} />
+              <Text style={styles.sectionSubtitle}>Organization</Text>
+              <Gap size={12} />
+              {renderFieldRow(
+                {
+                  label: "Directorate",
+                  value: employmentInfo.directorate,
+                },
+                {
+                  label: "Business Unit",
+                  value: employmentInfo.business_unit,
+                }
+              )}
+              {renderFieldFull({
+                label: "Division",
+                value: employmentInfo.division,
+              })}
+
+              <Gap size={20} />
+              <Text style={styles.sectionSubtitle}>Position & Grade</Text>
+              <Gap size={12} />
+              {renderFieldRow(
+                {
+                  label: "Position",
+                  value: employmentInfo.position,
+                },
+                {
+                  label: "Level",
+                  value: employmentInfo.level,
+                }
+              )}
+              {renderFieldRow(
+                {
+                  label: "Grade",
+                  value: String(employmentInfo.grade), // Convert to string
+                },
+                {
+                  label: "Band Position",
+                  value: employmentInfo.band_position,
+                }
+              )}
+              {renderFieldFull({
+                label: "Supervisor",
+                value: employmentInfo.supervisor,
+              })}
+
+              <Gap size={20} />
+              <Text style={styles.sectionSubtitle}>Employment Dates</Text>
+              <Gap size={12} />
+              {renderFieldRow(
+                {
+                  label: "Join Date",
+                  value: formatDate(employmentInfo.join_date),
+                },
+                {
+                  label: "Start Date",
+                  value: formatDate(employmentInfo.start_date),
+                }
+              )}
+              {renderFieldRow(
+                {
+                  label: "Grade Date",
+                  value: formatDate(employmentInfo.grade_date),
+                },
+                {
+                  label: "Band Position Date",
+                  value: formatDate(employmentInfo.band_position_date),
+                }
+              )}
+              {renderFieldRow(
+                {
+                  label: "Status",
+                  value: employmentInfo.status,
+                },
+                {
+                  label: "Reason In",
+                  value: employmentInfo.reason_employee_in,
+                }
+              )}
+            </View>
           ) : (
+            // Show error state when no data
             renderErrorStateWithCountdown(
-              "medical_record",
-              "Medical records will be displayed here"
+              "employment_info",
+              "Employment information will be displayed here"
             )
           )}
+          <Gap size={64} />
         </View>
       </ScrollView>
     );
@@ -714,16 +1358,33 @@ export default function ManageDataPage(): React.JSX.Element {
   const tabs: TabItem[] = [
     {
       id: "basic_information",
-      title: "Basic Information",
+      title: "Basic Info",
       component: BasicInformationTab,
     },
-    { id: "contact", title: "Contact", component: ContactTab },
+    { id: "address", title: "Address", component: AddressTab },
+    {
+      id: "emergency_contact",
+      title: "Emergency",
+      component: EmergencyContactTab,
+    },
+    { id: "payroll_account", title: "Payroll", component: PayrollAccountTab },
+    { id: "family", title: "Family", component: FamilyTab },
     {
       id: "education",
       title: "Education",
       component: EducationTab,
     },
-    { id: "medical", title: "Medical R...", component: MedicalTab },
+    {
+      id: "social_security",
+      title: "Social Sec.",
+      component: SocialSecurityTab,
+    },
+    { id: "medical_record", title: "Medical", component: MedicalRecordTab },
+    {
+      id: "employment_info",
+      title: "Employment",
+      component: EmploymentInfoTab,
+    },
   ];
 
   const handleBackPress = () => {
@@ -800,11 +1461,12 @@ export default function ManageDataPage(): React.JSX.Element {
         iconColor={Colors.primary.main}
         height={600}
         showCloseButton={true}
-        scrollable={true} // ✅ Enable scrolling
-        minHeight={400} // ✅ Set minimum height
-        maxHeight={700} // ✅ Set maximum height
       >
-        <View style={styles.downloadContent}>
+        <ScrollView
+          style={styles.downloadContent}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           {/* Select All */}
           <TouchableOpacity
             style={styles.selectAllContainer}
@@ -836,57 +1498,62 @@ export default function ManageDataPage(): React.JSX.Element {
 
           <Gap size={16} />
 
-          {/* Categories List - Now scrollable */}
+          {/* Categories List */}
           <View style={styles.categoriesList}>
             {[
               {
-                id: "employees",
-                title: "Employees",
-                description: "Name, email, phone number, date of birth",
+                id: "basic_information",
+                title: "Basic Information",
+                description: "Name, KTP, passport, birth info, contact details",
                 icon: "person",
               },
               {
-                id: "contacts",
-                title: "Contacts",
-                description: "Name, email, phone number, date of birth",
-                icon: "people",
+                id: "address",
+                title: "Address",
+                description: "Official and domicile address information",
+                icon: "location",
               },
               {
-                id: "education",
-                title: "Education",
-                description: "Schools, degrees, certifications",
-                icon: "school",
+                id: "emergency_contact",
+                title: "Emergency Contact",
+                description: "Emergency contact person and details",
+                icon: "call",
               },
               {
-                id: "medical_records",
-                title: "Medical Records",
-                description: "Name, email, phone number, date of birth",
-                icon: "medical",
+                id: "payroll_account",
+                title: "Payroll Account",
+                description: "Bank account and tax information",
+                icon: "card",
               },
               {
                 id: "family",
                 title: "Family",
-                description: "Name, email, phone number, date of birth",
+                description: "Family members and dependents",
                 icon: "people-circle",
               },
-              // Add more categories to test scrolling
               {
-                id: "documents",
-                title: "Documents",
-                description: "All related documents and files",
-                icon: "document",
+                id: "education",
+                title: "Education",
+                description: "Education history and qualifications",
+                icon: "school",
               },
               {
-                id: "payroll",
-                title: "Payroll",
-                description: "Salary and payment information",
-                icon: "card",
+                id: "social_security",
+                title: "Social Security",
+                description: "BPJS and Telkomedika information",
+                icon: "shield",
               },
               {
-                id: "benefits",
-                title: "Benefits",
-                description: "Employee benefits and insurance",
-                icon: "heart",
+                id: "medical_record",
+                title: "Medical Records",
+                description: "Health status and medical information",
+                icon: "medical",
+              },
+              {
+                id: "employment_info",
+                title: "Employment Info",
+                description: "Job position and employment details",
+                icon: "briefcase",
               },
             ].map((category) => {
               const isSelected = selectedCategories.includes(category.id);
@@ -962,8 +1629,7 @@ export default function ManageDataPage(): React.JSX.Element {
           <Text style={styles.infoText}>
             Data will be prepared and sent to your email
           </Text>
-        </View>
-        <Gap size={100} />
+        </ScrollView>
       </BottomSheet>
     </SafeAreaView>
   );

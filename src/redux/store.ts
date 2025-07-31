@@ -3,6 +3,7 @@ import globalReducer from "./reducers/globalReducer";
 import profileReducer from "./reducers/profileReducers";
 import authReducer from "./reducers/authReducer";
 import employeeReducer from "./reducers/employeeReducer";
+import historyReducer from "./reducers/historyReducer";
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     profile: profileReducer,
     auth: authReducer,
     employee: employeeReducer,
+    history: historyReducer,
   },
 });
 
@@ -28,3 +30,6 @@ export {
   clearEmployeeData,
   clearError,
 } from "./reducers/employeeReducer";
+
+export { fetchHistoryData } from "./actions/historyActions";
+export { resetHistoryState } from "./reducers/historyReducer";

@@ -142,3 +142,23 @@ export interface ProfileResponse {
   messages: string;
   data: ProfileData;
 }
+
+export interface HistoryItem {
+  request_id: string;
+  update: string;
+  status: string;
+  date_change: string;
+  approved_at: string | null;
+  reviewer: string | null;
+  reason_update: string;
+}
+
+export interface HistoryResponse {
+  status_summary: {
+    approved: number;
+    rejected: number;
+    draft: number;
+    waiting_approval: number;
+  };
+  data: HistoryItem[];
+}

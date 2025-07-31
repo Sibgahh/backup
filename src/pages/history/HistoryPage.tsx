@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
-import { View, FlatList } from "react-native";
+// ESSMobile/src/pages/history/HistoryPage.tsx
+import React from "react";
+import { View, FlatList, Text, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
@@ -9,80 +10,56 @@ import {
   PageHeader,
   HistoryItem,
   HistoryItemData,
+  HistoryStatus,
   SearchFilter,
-  FilterStatus,
 } from "../../components/molecules";
 import { styles } from "./style";
+import { useHistoryData } from "../../hooks";
 
 export default function HistoryPage(): React.JSX.Element {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-  // State for search and filter
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<FilterStatus>("all");
+  // Use the custom hook
+  const {
+    historyData,
+    loading,
+    error,
+    searchQuery,
+    selectedFilter,
+    handleSearchChange,
+    handleFilterChange,
+  } = useHistoryData();
 
-  // Mock data - replace with actual data from your API/store
-  const historyData: HistoryItemData[] = [
-    {
-      id: "1",
-      documentType: "education",
-      title: "#ES-UP001 - Employees Document",
-      description: "Change of residential address due to relocation",
-      status: "waiting_approval",
-      date: "Friday, 20 Jun 2025",
-      time: "10:30 AM",
-    },
-    {
-      id: "2",
-      documentType: "employee",
-      title: "Employment Certificate",
-      description: "Current employment verification",
-      status: "rejected",
-      date: "Friday, 20 Jun 2025",
-      time: "02:15 PM",
-    },
-    {
-      id: "3",
-      documentType: "medical",
-      title: "Health Record",
-      description: "Annual health checkup report",
-      status: "success",
-      date: "Friday, 20 Jun 2025",
-      time: "09:45 AM",
-    },
-    {
-      id: "4",
-      documentType: "contact",
-      title: "Address Verification",
-      description: "Current residence proof",
-      status: "draft",
-      date: "Friday, 20 Jun 2025",
-      time: "04:20 PM",
-    },
-  ];
-
-  // Filter and search logic
-  const filteredData = useMemo(() => {
-    let filtered = historyData;
-
-    // Apply status filter
-    if (selectedFilter !== "all") {
-      filtered = filtered.filter((item) => item.status === selectedFilter);
-    }
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (item) =>
-          item.title.toLowerCase().includes(query) ||
-          item.description.toLowerCase().includes(query) ||
-          item.date.toLowerCase().includes(query)
-      );
-    }
-
-    return filtered;
-  }, [historyData, selectedFilter, searchQuery]);
+  // Transform API history data to match HistoryItemData
+  const transformedHistoryData: HistoryItemData[] = historyData.map((item) => ({
+    id: item.request_id,
+    documentType: ["education", "employee", "medical", "contact"].includes(
+      item.update
+    )
+      ? (item.update as HistoryItemData["documentType"])
+      : "employee",
+    title: item.request_id,
+    description: item.reason_update,
+    status: [
+      "success",
+      "approved",
+      "rejected",
+      "draft",
+      "waiting_approval",
+    ].includes(item.status)
+      ? (item.status as HistoryStatus)
+      : "draft",
+    date: new Date(item.date_change).toLocaleDateString("en-US", {
+      weekday: "long",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }),
+    time: new Date(item.date_change).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  }));
 
   const handleBackPress = () => {
     navigation.goBack();
@@ -92,19 +69,37 @@ export default function HistoryPage(): React.JSX.Element {
     navigation.navigate("HistoryDetailsPage", { historyItem: item });
   };
 
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const handleFilterChange = (filter: FilterStatus) => {
-    setSelectedFilter(filter);
-  };
-
   const renderHistoryItem = ({ item }: { item: HistoryItemData }) => (
     <View style={{ marginBottom: 12 }}>
       <HistoryItem item={item} onPress={handleHistoryItemPress} />
     </View>
   );
+
+  // Render loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+        <StatusBar style="light" />
+        <PageHeader title="History" onBackPress={handleBackPress} />
+        <View style={styles.container}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+        <StatusBar style="light" />
+        <PageHeader title="History" onBackPress={handleBackPress} />
+        <View style={styles.container}>
+          <Text style={{ color: "red", textAlign: "center" }}>{error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
@@ -122,12 +117,17 @@ export default function HistoryPage(): React.JSX.Element {
         />
 
         <FlatList
-          data={filteredData}
+          data={transformedHistoryData}
           renderItem={renderHistoryItem}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
           ItemSeparatorComponent={() => <Gap size={0} />}
+          ListEmptyComponent={() => (
+            <View style={{ alignItems: "center", marginTop: 20 }}>
+              <Text>No history items found</Text>
+            </View>
+          )}
         />
       </View>
     </SafeAreaView>

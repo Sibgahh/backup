@@ -77,7 +77,7 @@ const authSlice = createSlice({
 
     // Check ESS Auth Status
     builder.addCase(checkESSAuthStatus.fulfilled, (state, action) => {
-      if (action.payload.hasSession && action.payload.user) {
+      if (action.payload.isAuthenticated && action.payload.user) {
         // Fix: check if user exists
         state.isAuthenticated = true;
         state.user = action.payload.user;

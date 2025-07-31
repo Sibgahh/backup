@@ -1,32 +1,32 @@
-import React, { useState, useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import * as DocumentPicker from "expo-document-picker";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useState } from "react";
 import {
-  Text,
-  View,
-  TouchableOpacity,
   Alert,
-  ScrollView,
   Image,
-  StyleSheet,
-  ViewStyle,
   TextInput as RNTextInput,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import { useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
-import { PageHeader } from "../../components/molecules";
 import {
-  Gap,
-  TextInput,
-  Dropdown,
-  Button,
-  Popup,
   BottomSheet,
+  Button,
+  Dropdown,
+  Gap,
+  Popup,
+  TextInput,
 } from "../../components/atoms";
+import { PageHeader } from "../../components/molecules";
 import { useProfile } from "../../hooks";
-import { styles } from "./style";
 import Colors from "../../utils/Colors";
 import Fonts from "../../utils/Fonts";
+import { styles } from "./style";
 
 interface ProfileFormData {
   NAME: string;
@@ -49,6 +49,8 @@ interface UploadedDocument {
   name: string;
   size: string;
   uploadDate: string;
+  type: string; // Add this field
+  uri?: string; // Add this for the actual file URI
 }
 
 // Dummy employee data (same as ManageDataPage)
@@ -198,14 +200,48 @@ export default function EmployeeDataEdit(): React.JSX.Element {
       `Date picker for ${field} will be implemented here`
     );
   };
-  const handleChooseFile = () => {
-    // Simulate file selection
-    const newDoc: UploadedDocument = {
-      name: "Kartu-keluarga.pdf",
-      size: "2.4 MB",
-      uploadDate: "Jan 15, 2024",
-    };
-    setUploadedDocuments([...uploadedDocuments, newDoc]);
+  const handleChooseFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        if (!selectedDocumentType) {
+          Alert.alert("Error", "Please select a document type first.");
+          return;
+        }
+
+        const asset = result.assets[0];
+        const newDoc: UploadedDocument = {
+          name: asset.name,
+          size: `${(asset.size ? asset.size / (1024 * 1024) : 0).toFixed(
+            1
+          )} MB`,
+          uploadDate: new Date().toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          type: selectedDocumentType, // Assign the selected document type
+          uri: asset.uri,
+        };
+
+        setUploadedDocuments([...uploadedDocuments, newDoc]);
+
+        // Reset the selected document type after successful upload
+        setSelectedDocumentType("");
+
+        // Optional: Show success message
+        Alert.alert(
+          "Success",
+          "Document uploaded successfully! Please select document type for next upload."
+        );
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick document");
+    }
   };
 
   const handleRemoveDocument = (index: number) => {
@@ -506,7 +542,7 @@ export default function EmployeeDataEdit(): React.JSX.Element {
         visible={showDocumentSheet}
         onClose={() => setShowDocumentSheet(false)}
         title="Employees"
-        height={900}
+        height={600}
         showCloseButton={false}
       >
         <ScrollView
@@ -555,34 +591,67 @@ export default function EmployeeDataEdit(): React.JSX.Element {
               Add your documents here, and you can upload up to 5 files max
             </Text>
 
+            {/* Document Type Selector */}
+            <View style={bottomSheetStyles.section}>
+              <Text style={bottomSheetStyles.sectionLabel}>
+                Select your document type
+              </Text>
+              <Dropdown
+                label=""
+                value={selectedDocumentType}
+                options={documentTypeOptions}
+                onSelect={setSelectedDocumentType}
+                placeholder="Select Type document"
+              />
+            </View>
+
             <TouchableOpacity
-              style={bottomSheetStyles.uploadArea}
+              style={[
+                bottomSheetStyles.uploadArea,
+                !selectedDocumentType && bottomSheetStyles.uploadAreaDisabled,
+              ]}
               onPress={handleChooseFile}
+              disabled={!selectedDocumentType}
             >
               <View style={bottomSheetStyles.uploadIcon}>
-                <Ionicons name="attach" size={32} color={Colors.primary.main} />
+                <Ionicons
+                  name="attach"
+                  size={32}
+                  color={
+                    selectedDocumentType
+                      ? Colors.primary.main
+                      : Colors.neutral.grey400
+                  }
+                />
               </View>
-              <Text style={bottomSheetStyles.uploadText}>Choose a file</Text>
-              <View style={bottomSheetStyles.browseButton}>
-                <Text style={bottomSheetStyles.browseButtonText}>
+              <Text
+                style={[
+                  bottomSheetStyles.uploadText,
+                  !selectedDocumentType && bottomSheetStyles.uploadTextDisabled,
+                ]}
+              >
+                {selectedDocumentType
+                  ? "Choose a file"
+                  : "Select document type first"}
+              </Text>
+              <View
+                style={[
+                  bottomSheetStyles.browseButton,
+                  !selectedDocumentType &&
+                    bottomSheetStyles.browseButtonDisabled,
+                ]}
+              >
+                <Text
+                  style={[
+                    bottomSheetStyles.browseButtonText,
+                    !selectedDocumentType &&
+                      bottomSheetStyles.browseButtonTextDisabled,
+                  ]}
+                >
                   Browse file
                 </Text>
               </View>
             </TouchableOpacity>
-          </View>
-
-          {/* Document Type Selector */}
-          <View style={bottomSheetStyles.section}>
-            <Text style={bottomSheetStyles.sectionLabel}>
-              Select your document type
-            </Text>
-            <Dropdown
-              label=""
-              value={selectedDocumentType}
-              options={documentTypeOptions}
-              onSelect={setSelectedDocumentType}
-              placeholder="Select Type document"
-            />
           </View>
 
           {/* Uploaded Documents List */}
@@ -597,6 +666,11 @@ export default function EmployeeDataEdit(): React.JSX.Element {
               </View>
               <View style={bottomSheetStyles.documentInfo}>
                 <Text style={bottomSheetStyles.documentName}>{doc.name}</Text>
+                <Text style={bottomSheetStyles.documentType}>
+                  Type:{" "}
+                  {documentTypeOptions.find((opt) => opt.value === doc.type)
+                    ?.label || doc.type}
+                </Text>
                 <Text style={bottomSheetStyles.documentMeta}>
                   {doc.size} • Uploaded {doc.uploadDate}
                 </Text>
@@ -630,11 +704,13 @@ export default function EmployeeDataEdit(): React.JSX.Element {
                 />
               )}
             </View>
+
             <Text style={bottomSheetStyles.agreementText}>
               I consent to the transmission and processing of personal data in
               accordance with the privacy policy,
               <Text style={bottomSheetStyles.linkText}> view full consent</Text>
             </Text>
+            <Gap size={12} />
           </TouchableOpacity>
 
           {/* Send Request Button */}
@@ -647,7 +723,6 @@ export default function EmployeeDataEdit(): React.JSX.Element {
               icon="send"
             />
           </View>
-          <Gap size={80} />
         </ScrollView>
       </BottomSheet>
     </SafeAreaView>
@@ -787,5 +862,26 @@ const bottomSheetStyles = StyleSheet.create({
   buttonContainer: {
     marginTop: 8,
     marginBottom: 20,
+  },
+
+  uploadAreaDisabled: {
+    borderColor: Colors.neutral.grey300,
+    backgroundColor: Colors.neutral.grey100,
+  },
+  uploadTextDisabled: {
+    color: Colors.neutral.grey400,
+  },
+  browseButtonDisabled: {
+    backgroundColor: Colors.neutral.grey100,
+    borderColor: Colors.neutral.grey300,
+  },
+  browseButtonTextDisabled: {
+    color: Colors.neutral.grey400,
+  },
+  documentType: {
+    ...Fonts.style.caption,
+    color: Colors.primary.main,
+    fontWeight: "600",
+    marginBottom: 2,
   },
 });

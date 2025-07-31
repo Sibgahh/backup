@@ -18,7 +18,7 @@ export const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
 
   // Status Card Styles
@@ -94,6 +94,40 @@ export const styles = StyleSheet.create({
   documentSubtitle: {
     ...Fonts.style.body2,
     color: Colors.text.secondary,
+  },
+
+  contentContainer: {
+    padding: 16,
+  },
+
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 16,
+  },
+  button: {
+    padding: 10,
+    backgroundColor: "#007AFF",
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: "white",
+    textAlign: "center",
+  },
+
+  navigationContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+  },
+  navigationButton: {
+    padding: 10,
+    backgroundColor: "#4CAF50",
+    borderRadius: 5,
+  },
+  navigationButtonText: {
+    color: "white",
+    textAlign: "center",
   },
 
   // Details Card Styles

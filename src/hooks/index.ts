@@ -3,3 +3,4 @@
 export { useProfile } from "./useProfile";
 export { useESSAuth } from "./useESSAuth";
 export { useEmployeeData } from "./useEmployeeData";
+export { useHistoryData } from "./useHistoryData";

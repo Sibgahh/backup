@@ -101,13 +101,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
+  container: {},
   label: {
     ...Fonts.style.body2,
     color: Colors.neutral.grey600,
-    marginBottom: 8,
   },
   dropdown: {
     flexDirection: "row",
