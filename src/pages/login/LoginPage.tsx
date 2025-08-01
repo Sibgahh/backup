@@ -1,23 +1,25 @@
-import React, { useState, useEffect } from "react";
+import Colors from "@/utils/Colors";
+import { Ionicons } from "@expo/vector-icons";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
+  Alert,
   Image,
-  TextInput,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../../router/AppNavigator";
-import { useESSAuth } from "../../hooks/useESSAuth";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../../redux/actions/authActions";
+import { AppDispatch, RootState } from "../../redux/store";
+import type { RootStackParamList } from "../../redux/types/global";
 import { styles } from "./style";
-import { Ionicons } from "@expo/vector-icons";
-import Colors from "@/utils/Colors";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
@@ -27,8 +29,8 @@ export default function LoginPage({ navigation }: Props): React.JSX.Element {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Use the updated hook with proper destructuring
-  const { login, loading, error, clearError } = useESSAuth();
+  const dispatch = useDispatch<AppDispatch>();
+  const { loading, error } = useSelector((state: RootState) => state.auth);
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -53,16 +55,24 @@ export default function LoginPage({ navigation }: Props): React.JSX.Element {
     }
 
     try {
-      const result = await login({
-        email: email.trim(),
-        password: password,
-      });
+      console.log("🔄 Dispatching login action...");
+      const result = await dispatch(
+        loginUser({
+          email: email.trim(),
+          password: password,
+        })
+      );
 
-      if (result.type === "auth/loginESS/fulfilled") {
+      console.log("🔍 Login result:", result);
+
+      if (loginUser.fulfilled.match(result)) {
+        console.log("✅ Login successful, navigating to Main...");
         navigation.reset({
           index: 0,
           routes: [{ name: "Main" }],
         });
+      } else {
+        console.log("❌ Login failed:", result);
       }
     } catch (err) {
       console.error("Login error:", err);
@@ -71,14 +81,10 @@ export default function LoginPage({ navigation }: Props): React.JSX.Element {
 
   // Handle errors from auth state
   useEffect(() => {
-    if (error && error.messages) {
-      const message =
-        typeof error.messages === "string" ? error.messages : "Login failed";
-      Alert.alert("Login Failed", message, [
-        { text: "OK", onPress: () => clearError() },
-      ]);
+    if (error) {
+      Alert.alert("Login Failed", error, [{ text: "OK", onPress: () => {} }]);
     }
-  }, [error, clearError]);
+  }, [error]);
 
   return (
     <SafeAreaView

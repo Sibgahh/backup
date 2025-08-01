@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import Colors from "../../../utils/Colors";
-import Fonts from "../../../utils/Fonts";
+import { Colors, Fonts } from "../../../utils";
 
 export interface TabItem {
   id: string | number;

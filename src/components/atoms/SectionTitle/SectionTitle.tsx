@@ -1,7 +1,6 @@
 import React from "react";
-import { View, Text, ViewStyle, StyleSheet } from "react-native";
-import Fonts from "../../../utils/Fonts";
-import Colors from "../../../utils/Colors";
+import { StyleSheet, Text, View, ViewStyle } from "react-native";
+import { Colors, Fonts } from "../../../utils";
 
 interface SectionTitleProps {
   title: string;

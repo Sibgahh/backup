@@ -1,8 +1,7 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Colors from "../../../utils/Colors";
-import Fonts from "../../../utils/Fonts";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { Colors, Fonts } from "../../../utils";
 
 export type StatusType = "draft" | "in_review" | "rejected" | "success";
 

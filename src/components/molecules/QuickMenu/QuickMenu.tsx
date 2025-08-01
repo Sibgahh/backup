@@ -1,14 +1,13 @@
 import React from "react";
 import {
-  View,
+  Image,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  Image,
+  View,
   ViewStyle,
-  StyleSheet,
 } from "react-native";
-import Colors from "../../../utils/Colors";
-import Fonts from "../../../utils/Fonts";
+import { Colors, Fonts } from "../../../utils";
 
 interface MenuItem {
   id: string;

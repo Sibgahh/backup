@@ -1,11 +1,11 @@
 import React from "react";
 import {
   Image,
-  ImageStyle,
   ImageSourcePropType,
+  ImageStyle,
   ImageURISource,
 } from "react-native";
-import Colors from "../../../utils/Colors";
+import { Colors } from "../../../utils"; // Note the path from Avatar to utils
 
 interface AvatarProps {
   source: ImageSourcePropType | { uri: string };

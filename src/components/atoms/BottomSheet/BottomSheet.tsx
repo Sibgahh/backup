@@ -13,10 +13,13 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+
+import { PanGestureHandler, State } from "react-native-gesture-handler";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -77,66 +80,69 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       onRequestClose={onClose}
       statusBarTranslucent={Platform.OS === "android"}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <Animated.View
-              style={[
-                styles.bottomSheet,
-                {
-                  height: totalHeight,
-                  transform: [{ translateY: slideAnim }],
-                },
-              ]}
-            >
-              {/* Safe Area Container */}
-              <SafeAreaView style={styles.safeContainer} edges={["bottom"]}>
-                {/* Handle Bar */}
-                <View style={styles.handleBar} />
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.overlay}>
+            <TouchableWithoutFeedback>
+              <Animated.View
+                style={[
+                  styles.bottomSheet,
+                  {
+                    height: totalHeight,
+                    transform: [{ translateY: slideAnim }],
+                  },
+                ]}
+              >
+                {/* Safe Area Container */}
+                <SafeAreaView style={styles.safeContainer} edges={["bottom"]}>
+                  {/* Handle Bar */}
+                  <View style={styles.handleBar} />
 
-                {/* Header */}
-                {(title || message || showCloseButton) && (
-                  <View style={styles.header}>
-                    <View style={styles.headerContent}>
-                      {icon && (
-                        <Ionicons
-                          name={icon as any}
-                          size={24}
-                          color={iconColor}
-                          style={styles.headerIcon}
-                        />
-                      )}
-                      <View style={styles.headerText}>
-                        {title && <Text style={styles.title}>{title}</Text>}
-                        {message && (
-                          <Text style={styles.message}>{message}</Text>
+                  {/* Header */}
+                  {(title || message || showCloseButton) && (
+                    <View style={styles.header}>
+                      <View style={styles.headerContent}>
+                        {icon && (
+                          <Ionicons
+                            name={icon as any}
+                            size={24}
+                            color={iconColor}
+                            style={styles.headerIcon}
+                          />
                         )}
+                        <View style={styles.headerText}>
+                          {title && <Text style={styles.title}>{title}</Text>}
+                          {message && (
+                            <Text style={styles.message}>{message}</Text>
+                          )}
+                        </View>
                       </View>
+
+                      {showCloseButton && (
+                        <TouchableOpacity
+                          style={styles.closeButton}
+                          onPress={onClose}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="close" size={24} color="#666" />
+                        </TouchableOpacity>
+                      )}
                     </View>
+                  )}
 
-                    {showCloseButton && (
-                      <TouchableOpacity
-                        style={styles.closeButton}
-                        onPress={onClose}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="close" size={24} color="#666" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-
-                {/* Content */}
-                <View style={styles.content}>{children}</View>
-              </SafeAreaView>
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+                  {/* Content */}
+                  <View style={styles.content}>{children}</View>
+                </SafeAreaView>
+              </Animated.View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </GestureHandlerRootView>
     </Modal>
   );
 };
 
+// ... existing styles ...
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,

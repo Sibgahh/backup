@@ -1,15 +1,15 @@
 import React from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 
 const { width } = Dimensions.get("window");
 const STEP_WIDTH = (width - 64) / 3; // Accounting for horizontal padding
 
-// Color mapping for different statuses
-const STATUS_COLORS = {
+// Default color mapping for different statuses
+const DEFAULT_STATUS_COLORS = {
   Draft: "#8E8E93", // Grey
-  Submitted: "#007AFF", // Primary Blue
-  "In Review": "#007AFF", // Primary Blue
+  Submitted: "#004AAD", // Primary Blue
+  "In Review": "#004AAD", // Primary Blue
   Success: "#4CAF50", // Green
   Rejected: "#FF3B30", // Red
   Status: "#C7C7CC", // Default Grey
@@ -23,12 +23,18 @@ interface StepIndicatorProps {
     step2: string; // Always "In Review"
     step3?: string; // Success or Rejected
   };
+  activeColor?: string; // Custom active color
+  inactiveColor?: string; // Custom inactive color
+  iconColor?: string; // Custom icon color
 }
 
 export const StepIndicator: React.FC<StepIndicatorProps> = ({
   currentStep,
   icons,
   stepStatuses,
+  activeColor,
+  inactiveColor,
+  iconColor,
 }) => {
   // Define default labels and allow overriding with specific statuses
   const stepLabels = [
@@ -37,22 +43,49 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
     stepStatuses.step3 || "Status", // Default to "Status"
   ];
 
-  // Function to get color based on status
+  // Function to get color based on status and custom colors
   const getStatusColor = (status: string, index: number) => {
-    // If the step is not reached yet, use grey
-    if (index > currentStep) return STATUS_COLORS["Status"];
+    // If custom colors are provided, use them
+    if (activeColor && inactiveColor) {
+      if (index <= currentStep) {
+        return activeColor;
+      } else {
+        return inactiveColor;
+      }
+    }
 
-    // Use the color from STATUS_COLORS, default to grey if not found
+    // If the step is not reached yet, use grey
+    if (index > currentStep) return DEFAULT_STATUS_COLORS["Status"];
+
+    // Use the color from DEFAULT_STATUS_COLORS, default to grey if not found
     return (
-      STATUS_COLORS[status as keyof typeof STATUS_COLORS] ||
-      STATUS_COLORS["Status"]
+      DEFAULT_STATUS_COLORS[status as keyof typeof DEFAULT_STATUS_COLORS] ||
+      DEFAULT_STATUS_COLORS["Status"]
     );
+  };
+
+  // Function to get icon color
+  const getIconColor = (index: number, statusColor: string) => {
+    // If custom icon color is provided, use it for completed steps only
+    if (iconColor && index < currentStep) {
+      return iconColor;
+    }
+
+    // Default icon color logic
+    if (index < currentStep) {
+      return "white";
+    } else if (index === currentStep) {
+      return statusColor; // Use status color for current step instead of iconColor
+    } else {
+      return "#C7C7CC";
+    }
   };
 
   return (
     <View style={styles.container}>
       {stepLabels.map((label, index) => {
         const statusColor = getStatusColor(label, index);
+        const iconColorValue = getIconColor(index, statusColor);
 
         return (
           <View key={index} style={styles.stepContainer}>
@@ -71,17 +104,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
                 },
               ]}
             >
-              <Icon
-                name={icons[index]}
-                size={24}
-                color={
-                  index < currentStep
-                    ? "white"
-                    : index === currentStep
-                    ? statusColor
-                    : "#C7C7CC"
-                }
-              />
+              <Icon name={icons[index]} size={24} color={iconColorValue} />
             </View>
 
             {/* Connector Line */}

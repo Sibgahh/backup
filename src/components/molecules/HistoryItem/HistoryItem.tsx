@@ -1,10 +1,10 @@
 // ESSMobile/src/components/molecules/HistoryItem/HistoryItem.tsx
-import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { HistoryItemData } from "../index";
+import React from "react";
+import { Text, TouchableOpacity, View } from "react-native";
+import { Colors } from "../../../utils";
+import { HistoryItemData } from "../../../redux/types";
 import { styles } from "./style";
-import Colors from "../../../utils/Colors";
 
 export const HistoryItem: React.FC<{
   item: HistoryItemData;
@@ -63,13 +63,35 @@ export const HistoryItem: React.FC<{
     >
       <View style={styles.historyItemHeader}>
         <Text style={styles.historyDate}>{item.date}</Text>
+        <Text style={styles.historyTime}>{item.time}</Text>
+      </View>
+
+      <View style={styles.historyItemContent}>
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: iconConfig.backgroundColor },
+          ]}
+        >
+          <Ionicons
+            name={iconConfig.name as any}
+            size={24}
+            color={iconConfig.iconColor}
+          />
+        </View>
+
+        <View style={styles.historyItemInfo}>
+          <Text style={styles.historyItemTitle}>{item.title}</Text>
+          <Text style={styles.historyItemDescription}>{item.description}</Text>
+        </View>
+
         <View
           style={[
             styles.statusBadge,
             {
               backgroundColor:
                 item.status === "success" || item.status === "approved"
-                  ? Colors.success2
+                  ? Colors.designSystem.successGreen[100]
                   : item.status === "rejected"
                   ? Colors.designSystem.errorRed[200]
                   : Colors.designSystem.primaryBlue[50],
@@ -91,26 +113,6 @@ export const HistoryItem: React.FC<{
           >
             {item.status.replace("_", " ")}
           </Text>
-        </View>
-      </View>
-
-      <View style={styles.historyItemContent}>
-        <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: iconConfig.backgroundColor },
-          ]}
-        >
-          <Ionicons
-            name={iconConfig.name as any}
-            size={24}
-            color={iconConfig.iconColor}
-          />
-        </View>
-
-        <View style={styles.historyItemInfo}>
-          <Text style={styles.historyItemTitle}>{item.title}</Text>
-          <Text style={styles.historyItemDescription}>{item.description}</Text>
         </View>
       </View>
     </ContentComponent>

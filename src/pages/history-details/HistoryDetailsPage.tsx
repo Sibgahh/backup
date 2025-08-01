@@ -1,10 +1,10 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-const EmployeeDataEdit: React.FC = () => {
+const HistoryDetailsPage: React.FC = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Employee Data Edit</Text>
+      <Text style={styles.title}>History Details</Text>
       <Text style={styles.subtitle}>This page is under construction</Text>
     </View>
   );
@@ -28,4 +28,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EmployeeDataEdit;
+export default HistoryDetailsPage;

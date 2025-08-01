@@ -1,100 +1,47 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { AppTheme, AppLanguage } from "../types";
-
-export interface ToastMessage {
-  message: string;
-  type: "success" | "error" | "warning" | "info";
-  visible: boolean;
-  duration?: number;
-}
-
-export interface ErrorMessage {
-  message: string;
-  visible: boolean;
-}
-
-export interface GlobalState {
-  isLoading: boolean;
-  token: string | null;
-  theme: AppTheme;
-  language: AppLanguage;
-  isInitialized: boolean;
-  toast: ToastMessage;
-  errorMessage: ErrorMessage;
-  loginErrorMessage: string;
-}
+import { createSlice } from "@reduxjs/toolkit";
+import { GlobalState } from "../types/global";
 
 const initialState: GlobalState = {
-  isLoading: false,
-  token: null,
-  theme: "light",
-  language: "en",
-  isInitialized: false,
-  toast: {
-    message: "",
-    type: "info",
-    visible: false,
-    duration: 3000,
-  },
-  errorMessage: {
-    message: "",
-    visible: false,
-  },
-  loginErrorMessage: "",
+  loading: false,
+  error: null,
+  success: null,
 };
 
 const globalSlice = createSlice({
   name: "global",
   initialState,
   reducers: {
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.isLoading = action.payload;
+    setLoading: (state, action) => {
+      state.loading = action.payload;
     },
-    setToken: (state, action: PayloadAction<string | null>) => {
-      state.token = action.payload;
+    setError: (state, action) => {
+      state.error = action.payload;
+      state.success = null;
     },
-    setTheme: (state, action: PayloadAction<AppTheme>) => {
-      state.theme = action.payload;
+    setSuccess: (state, action) => {
+      state.success = action.payload;
+      state.error = null;
     },
-    setLanguage: (state, action: PayloadAction<AppLanguage>) => {
-      state.language = action.payload;
+    clearError: (state) => {
+      state.error = null;
     },
-    setInitialized: (state, action: PayloadAction<boolean>) => {
-      state.isInitialized = action.payload;
+    clearSuccess: (state) => {
+      state.success = null;
     },
-    showToast: (state, action: PayloadAction<ToastMessage>) => {
-      state.toast = { ...state.toast, ...action.payload };
-    },
-    hideToast: (state) => {
-      state.toast.visible = false;
-    },
-    showMessageError: (state, action: PayloadAction<ErrorMessage>) => {
-      state.errorMessage = action.payload;
-    },
-    hideMessageError: (state) => {
-      state.errorMessage.visible = false;
-    },
-    messageErrorLogin: (state, action: PayloadAction<string>) => {
-      state.loginErrorMessage = action.payload;
-    },
-    clearLoginError: (state) => {
-      state.loginErrorMessage = "";
+    clearMessages: (state) => {
+      state.error = null;
+      state.success = null;
     },
   },
 });
 
 export const {
   setLoading,
-  setToken,
-  setTheme,
-  setLanguage,
-  setInitialized,
-  showToast,
-  hideToast,
-  showMessageError,
-  hideMessageError,
-  messageErrorLogin,
-  clearLoginError,
+  setError,
+  setSuccess,
+  clearError,
+  clearSuccess,
+  clearMessages,
 } = globalSlice.actions;
 
 export default globalSlice.reducer;

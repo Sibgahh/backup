@@ -1,20 +1,19 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  View,
+  StyleSheet,
   Text,
   TouchableOpacity,
+  View,
   ViewStyle,
-  StyleSheet,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Colors, Fonts } from "../../../utils";
 import { Avatar } from "../../atoms/Avatar";
-import Colors from "../../../utils/Colors";
-import Fonts from "../../../utils/Fonts";
 
 interface UserHeaderProps {
   userName: string;
   welcomeText?: string;
-  avatarSource: any;
+  avatarSource: string | null; // Changed to string for URL or null
   onNotificationPress: () => void;
   style?: ViewStyle;
 }
@@ -27,12 +26,17 @@ export const UserHeader: React.FC<UserHeaderProps> = ({
   style,
 }) => {
   const headerStyle: ViewStyle = StyleSheet.flatten([styles.header, style]);
-
+  const getAvatarSource = () => {
+    if (avatarSource && typeof avatarSource === "string") {
+      return { uri: avatarSource };
+    }
+    return require("../../../assets/icon/icon.png");
+  };
   return (
     <View style={headerStyle}>
       <View style={styles.userSection}>
         <Avatar
-          source={avatarSource}
+          source={getAvatarSource()}
           defaultSource={require("../../../assets/icon/icon.png")}
           style={styles.marginRight}
         />

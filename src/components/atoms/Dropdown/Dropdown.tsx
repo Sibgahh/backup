@@ -1,16 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  View,
+  FlatList,
+  Modal,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
+  View,
   ViewStyle,
-  Modal,
-  FlatList,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import Colors from "../../../utils/Colors";
-import Fonts from "../../../utils/Fonts";
+import { Colors, Fonts } from "../../../utils";
 
 interface DropdownOption {
   label: string;

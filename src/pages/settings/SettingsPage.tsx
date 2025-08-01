@@ -1,23 +1,25 @@
+import { Ionicons } from "@expo/vector-icons";
+import { NavigationProp, useNavigation } from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
-  Text,
-  View,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
   ActivityIndicator,
+  Alert,
   Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, NavigationProp } from "@react-navigation/native";
-import { RootStackParamList } from "../../router/AppNavigator";
+import { useDispatch, useSelector } from "react-redux";
 import { Gap } from "../../components/atoms";
-import { useESSAuth } from "../../hooks/useESSAuth";
-import { useProfile } from "../../hooks/useProfile";
-import { styles } from "./style";
+import { logoutUser } from "../../redux/actions/authActions";
+import { getUserProfile } from "../../redux/actions/homeActions";
+import { AppDispatch, RootState } from "../../redux/store";
+import { RootStackParamList } from "../../redux/types/global";
 import Colors from "../../utils/Colors";
+import { styles } from "./style";
 
 interface WorkInfoItemProps {
   icon: string;
@@ -73,6 +75,13 @@ const AvatarWithFallback: React.FC<AvatarWithFallbackProps> = ({
   };
 
   const shouldShowFallback = !imageUri || isDummyImage(imageUri) || imageError;
+
+  // Add logging to debug image loading
+  React.useEffect(() => {
+    if (imageUri) {
+      console.log("🖼️ Avatar image URI:", imageUri);
+    }
+  }, [imageUri]);
 
   const fallbackStyle = {
     width: size,
@@ -158,44 +167,43 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
 );
 
 export default function SettingsPage(): React.JSX.Element {
-  const { logout, loading } = useESSAuth();
+  const dispatch = useDispatch<AppDispatch>();
+  const { user, loading } = useSelector((state: RootState) => state.auth);
   const {
-    profile,
-    fetchProfile,
-    loading: profileLoading,
+    userProfile,
+    loading: homeLoading,
     error,
-  } = useProfile();
+  } = useSelector((state: RootState) => state.home);
+
+  const profileLoading = homeLoading.userProfile;
+
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-  // Fetch profile data on component mount
+  // Fetch profile data when component mounts
   useEffect(() => {
-    console.log("🔍 Settings page: Fetching profile data...");
-    fetchProfile();
-  }, [fetchProfile]);
-
-  // Log the profile data for debugging
-  useEffect(() => {
-    if (profile) {
-      console.log(
-        "📱 Settings - Profile data:",
-        JSON.stringify(profile, null, 2)
-      );
+    if (!userProfile && !profileLoading) {
+      console.log("🔄 Fetching user profile data...");
+      dispatch(getUserProfile());
     }
-  }, [profile]);
+  }, [dispatch, userProfile, profileLoading]);
 
   // Use real profile data or fallback to loading/error states
-  const userData = profile
+  const userData = userProfile
     ? {
-        name: profile.employee_name || "Unknown User",
-        email: profile.email || "No email",
-        avatar: profile.photo_profile_ess || profile.avatar,
+        name: userProfile.employee_name || "Unknown User",
+        email: userProfile.email || "No email",
+        avatar: userProfile.photo_profile_ess || userProfile.avatar,
         workInfo: {
-          company: profile.company || "N/A",
-          companyAddress: profile.company_address || "N/A",
-          email: profile.email || "N/A",
-          phoneNumber: profile.phone_number
-            ? String(profile.phone_number)
-            : "N/A",
+          company: userProfile.company || "N/A",
+          companyAddress: userProfile.company_address || "N/A",
+          email: userProfile.email || "N/A",
+          phoneNumber: userProfile.phone_number || "N/A",
+          division: userProfile.department || "N/A",
+          position: userProfile.position || "N/A",
+          employeeId: userProfile.employee_id || "N/A",
+          startDate: "N/A", // This might need to be added to ProfileData interface if available in API
+          businessUnit: "N/A", // This might need to be added to ProfileData interface if available in API
+          directSPV: "N/A", // This might need to be added to ProfileData interface if available in API
         },
       }
     : {
@@ -203,23 +211,24 @@ export default function SettingsPage(): React.JSX.Element {
           ? "Loading..."
           : error
           ? "Error loading profile"
-          : "No profile data",
+          : user?.name || "No profile data",
         email: profileLoading
           ? "Loading..."
           : error
           ? "Please try again"
-          : "No email",
-        avatar: undefined,
+          : user?.email || "No email",
+        avatar: user?.avatar,
         workInfo: {
-          company: profileLoading ? "Loading..." : "N/A",
+          company: profileLoading ? "Loading..." : user?.department || "N/A",
           companyAddress: profileLoading ? "Loading..." : "N/A",
-          email: profileLoading ? "Loading..." : "N/A",
+          email: profileLoading ? "Loading..." : user?.email || "N/A",
           phoneNumber: profileLoading ? "Loading..." : "N/A",
-          division: "",
-          position: "",
-          startDate: "",
-          businessUnit: "",
-          directSPV: "",
+          division: profileLoading ? "Loading..." : user?.department || "N/A",
+          position: profileLoading ? "Loading..." : user?.position || "N/A",
+          employeeId: profileLoading ? "Loading..." : user?.employeeId || "N/A",
+          startDate: "N/A",
+          businessUnit: "N/A",
+          directSPV: "N/A",
         },
       };
 
@@ -244,7 +253,7 @@ export default function SettingsPage(): React.JSX.Element {
 
   const handleRetryProfile = () => {
     console.log("🔄 Retrying profile fetch...");
-    fetchProfile();
+    dispatch(getUserProfile());
   };
 
   const handleLogout = () => {
@@ -253,15 +262,9 @@ export default function SettingsPage(): React.JSX.Element {
       {
         text: "Logout",
         style: "destructive",
-        onPress: async () => {
-          try {
-            console.log("🚪 Starting logout from Settings...");
-            await logout();
-            console.log("✅ Logout completed from Settings");
-          } catch (error) {
-            console.error("❌ Logout error from Settings:", error);
-            Alert.alert("Error", "Failed to logout. Please try again.");
-          }
+        onPress: () => {
+          console.log("🚪 Starting logout from Settings...");
+          dispatch(logoutUser());
         },
       },
     ]);
@@ -368,9 +371,26 @@ export default function SettingsPage(): React.JSX.Element {
               }}
             >
               <Text style={styles.sectionTitle}>Work Information</Text>
-              {profileLoading && (
-                <ActivityIndicator size="small" color={Colors.primary.main} />
-              )}
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                {profileLoading && (
+                  <ActivityIndicator size="small" color={Colors.primary.main} />
+                )}
+                {!profileLoading && (
+                  <TouchableOpacity
+                    onPress={handleRetryProfile}
+                    style={{
+                      marginLeft: 8,
+                      padding: 4,
+                    }}
+                  >
+                    <Ionicons
+                      name="refresh"
+                      size={20}
+                      color={Colors.primary.main}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
             <Gap size={16} />
 
@@ -397,6 +417,12 @@ export default function SettingsPage(): React.JSX.Element {
               icon="call"
               title="Phone Number"
               value={userData.workInfo.phoneNumber}
+            />
+
+            <WorkInfoItem
+              icon="person"
+              title="Employee ID"
+              value={userData.workInfo.employeeId}
             />
 
             {/* Only show additional fields if they have actual data */}

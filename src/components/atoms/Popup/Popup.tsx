@@ -1,15 +1,14 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
   Modal,
-  View,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
+  View,
   ViewStyle,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import Colors from "../../../utils/Colors";
-import Fonts from "../../../utils/Fonts";
+import { Colors, Fonts } from "../../../utils";
 import { Button } from "../Button";
 
 interface PopupAction {
@@ -50,7 +49,9 @@ export const Popup: React.FC<PopupProps> = ({
     if (index === 0 && variant === "secondary") {
       return {
         ...baseStyle,
-        backgroundColor: Colors.neutral.grey400,
+        backgroundColor: "white",
+        borderColor: Colors.neutral.grey200,
+        borderWidth: 1,
       };
     }
 
@@ -181,17 +182,19 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   title: {
-    ...Fonts.style.h3,
+    fontFamily: Fonts.family.lato.bold,
     color: Colors.neutral.black,
-    fontWeight: "700",
+    fontSize: 18,
+    lineHeight: 24,
     textAlign: "center",
     marginBottom: 12,
   },
   message: {
-    ...Fonts.style.body1,
+    fontFamily: Fonts.family.lato.regular,
     color: Colors.neutral.grey600,
+    fontSize: 14,
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 20,
   },
   actions: {
     flexDirection: "row",

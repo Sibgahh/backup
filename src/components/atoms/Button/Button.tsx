@@ -42,7 +42,8 @@ export const Button: React.FC<ButtonProps> = ({
 
   const textStyle: TextStyle = {
     ...Fonts.style.button,
-    color: Colors.neutral.white,
+    color:
+      variant === "secondary" ? Colors.neutral.grey600 : Colors.neutral.white,
     marginLeft: icon ? 8 : 0,
     fontWeight: "600",
   };

@@ -1,6 +1,5 @@
 import { StyleSheet } from "react-native";
-import Colors from "../../../utils/Colors";
-import Fonts from "../../../utils/Fonts";
+import { Colors, Fonts } from "../../../utils";
 
 export const styles = StyleSheet.create({
   // Notifications List

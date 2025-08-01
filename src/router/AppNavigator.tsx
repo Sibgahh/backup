@@ -1,47 +1,89 @@
-import React, { useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React, { useEffect } from "react";
+import { useSelector } from "react-redux";
 import {
+  EmployeeDataEdit,
+  HistoryDetailsPage,
+  HistoryPage,
+  HomePage,
   LoginPage,
   ManageDataPage,
-  EmployeeDataEdit,
-  HistoryPage,
-  HistoryDetailsPage,
   NotificationPage,
+  SettingsPage,
   SuccessPage,
 } from "../pages";
-import { useESSAuth } from "../hooks/useESSAuth";
-import BottomTabNavigator from "./BottomTabNavigator";
+import { RootState } from "../redux/store";
+import type { RootStackParamList } from "../redux/types/global";
 import Colors from "../utils/Colors";
 
 // Import the type from the molecules
-import type { HistoryItemData } from "../components/molecules";
 
-export type RootStackParamList = {
-  Login: undefined;
-  Main: undefined;
-  ManageData: undefined;
-  EmployeeDataEdit: undefined;
-  HistoryPage: undefined;
-  HistoryDetailsPage: {
-    historyItem: HistoryItemData;
-  };
-  NotificationPage: undefined;
-  SuccessPage: undefined; // Add this line
+export type TabParamList = {
+  Home: undefined;
+  Settings: undefined;
 };
 
+// ===== NAVIGATORS =====
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
 
+// ===== BOTTOM TAB NAVIGATOR COMPONENT =====
+function BottomTabNavigator(): React.JSX.Element {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap = "home";
+
+          if (route.name === "Home") {
+            iconName = focused ? "home" : "home-outline";
+          } else if (route.name === "Settings") {
+            iconName = focused ? "settings" : "settings-outline";
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: Colors.primary2,
+        tabBarInactiveTintColor: "gray",
+      })}
+    >
+      <Tab.Screen name="Home" component={HomePage} />
+      <Tab.Screen name="Settings" component={SettingsPage} />
+    </Tab.Navigator>
+  );
+}
+
+// ===== MAIN APP NAVIGATOR =====
 export default function AppNavigator(): React.JSX.Element {
-  const { isAuthenticated, checkAuthStatus, loading } = useESSAuth();
+  const { isAuthenticated, loading } = useSelector(
+    (state: RootState) => state.auth
+  );
 
   // Check auth status on app start
   useEffect(() => {
     console.log("🔍 AppNavigator: Checking auth status on startup...");
-    checkAuthStatus();
-  }, [checkAuthStatus]);
+    // Auth status is checked in App.tsx, so we don't need to check here
+  }, []);
 
-  console.log("🧭 AppNavigator: isAuthenticated =", isAuthenticated);
+  // Log whenever authentication state changes
+  useEffect(() => {
+    console.log(
+      "🔄 AppNavigator: Auth state changed - isAuthenticated =",
+      isAuthenticated,
+      "loading =",
+      loading
+    );
+  }, [isAuthenticated, loading]);
+
+  console.log(
+    "🧭 AppNavigator: Current state - isAuthenticated =",
+    isAuthenticated,
+    "loading =",
+    loading
+  );
 
   return (
     <Stack.Navigator
@@ -49,7 +91,6 @@ export default function AppNavigator(): React.JSX.Element {
       initialRouteName={isAuthenticated ? "Main" : "Login"}
     >
       {isAuthenticated ? (
-        // Authenticated stack
         <>
           <Stack.Screen name="Main" component={BottomTabNavigator} />
           <Stack.Screen name="ManageData" component={ManageDataPage} />
@@ -63,7 +104,6 @@ export default function AppNavigator(): React.JSX.Element {
           <Stack.Screen name="SuccessPage" component={SuccessPage} />
         </>
       ) : (
-        // Unauthenticated stack
         <Stack.Screen name="Login" component={LoginPage} />
       )}
     </Stack.Navigator>

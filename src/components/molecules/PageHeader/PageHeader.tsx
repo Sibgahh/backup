@@ -1,14 +1,13 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  View,
+  StyleSheet,
   Text,
   TouchableOpacity,
+  View,
   ViewStyle,
-  StyleSheet,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import Colors from "../../../utils/Colors";
-import Fonts from "../../../utils/Fonts";
+import { Colors, Fonts } from "../../../utils";
 
 interface PageHeaderProps {
   title: string;

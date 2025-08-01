@@ -1,9 +1,8 @@
 import React from "react";
-import { View, Text, Image, ViewStyle, StyleSheet } from "react-native";
-import { Card } from "../../atoms/Card";
+import { Image, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { Colors, Fonts } from "../../../utils";
 import { Button } from "../../atoms/Button";
-import Colors from "../../../utils/Colors";
-import Fonts from "../../../utils/Fonts";
+import { Card } from "../../atoms/Card";
 
 interface TimesheetReminderProps {
   title: string;

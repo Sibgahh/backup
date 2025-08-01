@@ -1,9 +1,9 @@
-export { default as LoginPage } from "./login/LoginPage";
-export { default as HomePage } from "./home/HomePage";
-export { default as SettingsPage } from "./settings/SettingsPage";
-export { default as ManageDataPage } from "./manage-data/ManageDataPage";
 export { default as EmployeeDataEdit } from "./employee-data-edit/EmployeeDataEdit";
+export { default as HistoryDetailsPage } from "./history-details/HistoryDetailsPage";
 export { default as HistoryPage } from "./history/HistoryPage";
-export { default as HistoryDetailsPage } from "./history-details/HistoryDetails";
+export { default as HomePage } from "./home/HomePage";
+export { default as LoginPage } from "./login/LoginPage";
+export { default as ManageDataPage } from "./manage-data/ManageDataPage";
 export { default as NotificationPage } from "./notification/NotificationPage";
-export { default as SuccessPage } from "./success-page/SuccessPage";
+export { default as SettingsPage } from "./settings/SettingsPage";
+export { default as SuccessPage } from "./success/SuccessPage";

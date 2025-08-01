@@ -1,27 +1,90 @@
-import React from "react";
-import { ScrollView, Alert, RefreshControl } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../../router/AppNavigator";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect } from "react";
+import { Alert, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useDispatch, useSelector } from "react-redux";
+import { Gap, SectionTitle } from "../../components/atoms";
 import {
-  UserHeader,
+  PerformanceCard,
   QuickMenu,
   TimesheetReminder,
-  PerformanceCard,
+  UserHeader,
 } from "../../components/molecules";
-import { Gap, SectionTitle } from "../../components/atoms";
-import { useESSAuth } from "../../hooks/useESSAuth"; // Use ESS Auth
-import { useSelector } from "react-redux";
+import { homeModule } from "../../modules/home/homeModule";
 import { RootState } from "../../redux/store";
+import type { RootStackParamList } from "../../redux/types/global";
 import { styles } from "./style";
 
 type HomePageNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomePage(): React.JSX.Element {
   const navigation = useNavigation<HomePageNavigationProp>();
-  const { user } = useSelector((state: RootState) => state.auth); // ESSUser
+  const dispatch = useDispatch();
+  const { user } = useSelector((state: RootState) => state.auth);
+
+  // Use the new home module
+  const {
+    dashboardData,
+    notifications,
+    recentHistory,
+    userProfile,
+    loading,
+    error,
+    fetchDashboardData,
+    fetchNotifications,
+    fetchRecentHistory,
+    fetchUserProfile,
+    markNotificationAsRead,
+  } = homeModule;
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchDashboardData();
+    fetchNotifications();
+    fetchRecentHistory();
+    fetchUserProfile();
+  }, []);
+
+  const userData = userProfile
+    ? {
+        name: userProfile.employee_name || "Unknown User",
+        email: userProfile.email || "No email",
+        avatar: userProfile.photo_profile_ess || userProfile.avatar || null,
+        workInfo: {
+          company: userProfile.company || "N/A",
+          companyAddress: userProfile.company_address || "N/A",
+          email: userProfile.email || "N/A",
+          phoneNumber: userProfile.phone_number
+            ? String(userProfile.phone_number)
+            : "N/A",
+        },
+      }
+    : {
+        name: loading.userProfile
+          ? "Loading..."
+          : error
+          ? "Error loading profile"
+          : "No profile data",
+        email: loading.userProfile
+          ? "Loading..."
+          : error
+          ? "Please try again"
+          : "No email",
+        avatar: null,
+        workInfo: {
+          company: loading.userProfile ? "Loading..." : "N/A",
+          companyAddress: loading.userProfile ? "Loading..." : "N/A",
+          email: loading.userProfile ? "Loading..." : "N/A",
+          phoneNumber: loading.userProfile ? "Loading..." : "N/A",
+          division: "",
+          position: "",
+          startDate: "",
+          businessUnit: "",
+          directSPV: "",
+        },
+      };
 
   const menuItems = [
     {
@@ -43,7 +106,7 @@ export default function HomePage(): React.JSX.Element {
       title: "Cuti",
       icon: require("../../assets/icon/menu2.png"),
       onPress: () => {
-        console.log("📱 Navigating to CutiPage...");
+        console.log(" Navigating to CutiPage...");
       },
     },
     {
@@ -56,68 +119,84 @@ export default function HomePage(): React.JSX.Element {
     },
   ];
 
-  const performanceData = {
-    rating: 4.5,
-    progressItems: [
-      {
-        title: "Utilization July",
-        percentage: 85,
-        subtitle: "17/20 tasks completed",
-      },
-      {
-        title: "Productivity July",
-        percentage: 85,
-        subtitle: "17/20 tasks completed",
-      },
-    ],
-  };
-
-  // Handle notification press - navigate to notification page
   const handleNotificationPress = () => {
     try {
       console.log("📱 Navigating to NotificationPage...");
       navigation.navigate("NotificationPage");
     } catch (error) {
-      console.error("❌ Notification navigation error:", error);
+      console.error("❌ Navigation error:", error);
       Alert.alert("Error", "Cannot navigate to Notifications");
     }
   };
 
-  // Use ESSUser fields
-  const displayName = user?.employee_name || "User";
+  const handleHistoryPress = () => {
+    try {
+      console.log("📱 Navigating to HistoryPage...");
+      navigation.navigate("HistoryPage");
+    } catch (error) {
+      console.error("❌ Navigation error:", error);
+      Alert.alert("Error", "Cannot navigate to History");
+    }
+  };
+
+  const handleSettingsPress = () => {
+    try {
+      console.log("📱 Navigating to SettingsPage...");
+      navigation.navigate("SettingsPage");
+    } catch (error) {
+      console.error("❌ Navigation error:", error);
+      Alert.alert("Error", "Cannot navigate to Settings");
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
-      <StatusBar style="light" />
-      <UserHeader
-        userName={displayName || "User"} // ← Use Redux data
-        avatarSource={{
-          uri: "https://via.placeholder.com/150", // ← Use Redux data
-        }}
-        onNotificationPress={handleNotificationPress}
-      />
-
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
       <ScrollView
-        style={styles.container}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
       >
-        <Gap size={16} />
-        <TimesheetReminder
-          title="Don't forget to submit your timesheet today!"
-          onClockIn={() => Alert.alert("Info", "Clock in feature coming soon!")}
+        <UserHeader
+          userName={userData.name}
+          avatarSource={userData.avatar}
+          onNotificationPress={handleNotificationPress}
         />
+        <Gap size={24} />
 
-        <SectionTitle title="Menu" />
-
-        <QuickMenu menuItems={menuItems} />
-
-        <SectionTitle title="Achievement" />
+        <SectionTitle title="Welcome back!" />
+        <Gap size={16} />
 
         <PerformanceCard
-          rating={performanceData.rating}
-          progressItems={performanceData.progressItems}
+          rating={4.5}
+          progressItems={[
+            {
+              title: "Task Completion",
+              percentage: 85,
+              subtitle: "85% of tasks completed",
+            },
+            {
+              title: "Time Management",
+              percentage: 92,
+              subtitle: "92% efficiency",
+            },
+          ]}
         />
+        <Gap size={24} />
+
+        <SectionTitle title="Quick Menu" />
+        <Gap size={16} />
+
+        <QuickMenu menuItems={menuItems} />
+        <Gap size={24} />
+
+        <SectionTitle title="Recent Activity" />
+        <Gap size={16} />
+
+        <TimesheetReminder
+          title="Don't forget to clock in today!"
+          onClockIn={handleHistoryPress}
+        />
+        <Gap size={24} />
       </ScrollView>
     </SafeAreaView>
   );

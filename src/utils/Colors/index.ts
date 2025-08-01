@@ -43,6 +43,7 @@ const Colors = {
   // Functional Colors
   status: {
     success: "#4CAF50",
+    lightSuccess: "#C8E6C9",
     warning: "#FFC107",
     error: "#F44336",
     info: "#2196F3",
@@ -97,7 +98,7 @@ const Colors = {
     // Grey Scale
     grey: {
       50: "#FFFFFF",
-      100: "#FAFAFA",
+      100: "#F9FBFE",
       200: "#EAEAED",
       300: "#DADAEA",
       400: "#969363",
@@ -142,7 +143,7 @@ const Colors = {
       200: "#FFEBE5",
       300: "#FFD1CB",
       400: "#FF5CA3",
-      500: "#EEA49F",
+      500: "#F04438",
       600: "#FF6B7C",
       700: "#FF624F",
       800: "#D03824",
@@ -151,11 +152,11 @@ const Colors = {
 
     // Warning Orange/Yellow Scale
     warningOrange: {
-      100: "#FFFSE3",
+      100: "#FFFCF5",
       200: "#FFEBE5",
       300: "#FFD1CB",
       400: "#FF5CA3",
-      500: "#EEA49F",
+      500: "#FDB022",
       600: "#FF6B7C",
       700: "#FF624F",
       800: "#D03824",
@@ -164,28 +165,28 @@ const Colors = {
 
     // Success Green Scale
     successGreen: {
-      100: "#FFF5F3",
-      200: "#FFE8E5",
-      300: "#FFD1CB",
-      400: "#F5ACA3",
-      500: "#EE9A8F",
-      600: "#F98B7C",
-      700: "#F9624F",
+      100: "#ECFDF3",
+      200: "#D1FADF",
+      300: "#A6F4C5",
+      400: "#6CE9A6",
+      500: "#32D583",
+      600: "#0BA5EC",
+      700: "#0086C9",
       800: "#D63824",
       900: "#B0210E",
     },
 
     // Info Blue Scale
     infoBlue: {
-      100: "#FFFSF3",
-      200: "#FFEBE5",
-      300: "#FFD1CB",
-      400: "#FF5CA3",
-      500: "#EEA49F",
-      600: "#FF6B7C",
-      700: "#FF624F",
-      800: "#D03824",
-      900: "#BD210E",
+      100: "#FFF5F3",
+      200: "#E0F2FE",
+      300: "#B9E6FE",
+      400: "#7CD4FD",
+      500: "#36BFFA",
+      600: "#0BA5EC",
+      700: "#0086C9",
+      800: "#1769AA",
+      900: "#065986",
     },
   },
 };

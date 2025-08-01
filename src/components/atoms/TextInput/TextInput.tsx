@@ -1,17 +1,16 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  View,
-  Text,
   TextInput as RNTextInput,
-  TextInputProps,
   StyleSheet,
-  ViewStyle,
+  Text,
+  TextInputProps,
   TextStyle,
   TouchableOpacity,
+  View,
+  ViewStyle,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import Colors from "../../../utils/Colors";
-import Fonts from "../../../utils/Fonts";
+import { Colors, Fonts } from "../../../utils";
 
 interface CustomTextInputProps extends TextInputProps {
   label: string;

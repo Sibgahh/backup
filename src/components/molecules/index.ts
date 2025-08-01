@@ -12,10 +12,11 @@ export type {
   HistoryItemData,
   HistoryStatus,
   DocumentType,
-} from "./HistoryItem";
+} from "../../redux/types";
 export { NotificationCard } from "./NotificationCard";
 export type { NotificationItem, NotificationType } from "./NotificationCard";
 export { NotificationStats } from "./NotificationStats";
 export { NotificationList } from "./NotificationList";
 export { SearchFilter } from "./SearchFilter";
 export type { FilterStatus } from "./SearchFilter";
+export { HrReviewNotes } from "./HrReviewNotes";

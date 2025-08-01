@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { StatusBar as RNStatusBar, Platform, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
-import { Provider } from "react-redux";
-import * as SplashScreen from "expo-splash-screen";
-import * as Font from "expo-font";
 import { registerRootComponent } from "expo";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import * as Font from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useState } from "react";
+import { Platform, StatusBar as RNStatusBar, View } from "react-native";
+import "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Provider } from "react-redux";
+import { checkAuthStatus } from "./redux/actions/authActions";
 import { store } from "./redux/store";
 import AppNavigator from "./router/AppNavigator";
-import { checkESSAuthStatus } from "./redux/actions/authESS";
-
 SplashScreen.preventAutoHideAsync();
 
 function App(): React.JSX.Element {
@@ -39,7 +39,7 @@ function App(): React.JSX.Element {
         }
 
         // Check auth status
-        store.dispatch(checkESSAuthStatus());
+        store.dispatch(checkAuthStatus());
       } catch (e) {
         console.warn("Error loading fonts:", e);
       } finally {
